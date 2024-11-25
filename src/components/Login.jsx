@@ -1,36 +1,70 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 function Login({ socket, setUsername }) {
-  const [formData, setFormData] = useState({
-    username: '',
-    password: ''
-  });
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    // Load saved credentials
+    const savedUser = localStorage.getItem('chatUser');
+    if (savedUser) {
+      const { username, password } = JSON.parse(savedUser);
+      setSelectedUser(username);
+      setPassword(password);
+    }
+
+    // Load available users
+    fetch(`${import.meta.env.VITE_API_URL}/users`)
+      .then(res => res.json())
+      .then(users => setUsers(users))
+      .catch(err => console.error('Error loading users:', err));
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    socket.emit('auth', formData);
-    setUsername(formData.username);
+    setError('');
+
+    socket.emit('auth', {
+      username: selectedUser,
+      password
+    });
+
+    // Save credentials
+    localStorage.setItem('chatUser', JSON.stringify({
+      username: selectedUser,
+      password
+    }));
+    
+    setUsername(selectedUser);
   };
 
   return (
     <LoginContainer>
       <LoginForm onSubmit={handleSubmit}>
         <h2>Friend-Chat</h2>
-        <input
-          type="text"
-          placeholder="Username"
-          value={formData.username}
-          onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+        <select 
+          value={selectedUser} 
+          onChange={(e) => setSelectedUser(e.target.value)}
           required
-        />
+        >
+          <option value="">Select User</option>
+          {users.map(user => (
+            <option key={user.username} value={user.username}>
+              {user.username}
+            </option>
+          ))}
+        </select>
         <input
           type="password"
           placeholder="Password"
-          value={formData.password}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           required
         />
+        {error && <ErrorMessage>{error}</ErrorMessage>}
         <button type="submit">Join Chat</button>
       </LoginForm>
     </LoginContainer>
@@ -89,6 +123,12 @@ const LoginForm = styled.form`
       opacity: 0.9;
     }
   }
+`;
+
+const ErrorMessage = styled.p`
+  color: var(--error-color);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
 `;
 
 export default Login; 
