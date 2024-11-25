@@ -8,38 +8,38 @@ function Login({ socket, setUsername }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Load saved credentials
-    const savedUser = localStorage.getItem("chatUser");
-    if (savedUser) {
-      const { username, password } = JSON.parse(savedUser);
-      setSelectedUser(username);
-      setPassword(password);
-    }
+    // Clear old stored credentials
+    localStorage.removeItem("chatUser");
+    localStorage.removeItem("chatAuth");
 
     // Load available users
     fetch(`${import.meta.env.VITE_API_URL}/users`)
       .then((res) => res.json())
-      .then((users) => setUsers(users))
-      .catch((err) => console.error("Error loading users:", err));
+      .then((users) => {
+        setUsers(users);
+        if (users.length > 0) {
+          setSelectedUser(users[0].username);
+        }
+      })
+      .catch((err) => {
+        console.error("Error loading users:", err);
+        setError("Failed to load users. Please try again.");
+      });
   }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError("");
 
+    if (!selectedUser) {
+      setError("Please select a user");
+      return;
+    }
+
     socket.emit("auth", {
       username: selectedUser,
       password,
     });
-
-    // Save credentials
-    localStorage.setItem(
-      "chatUser",
-      JSON.stringify({
-        username: selectedUser,
-        password,
-      })
-    );
 
     setUsername(selectedUser);
   };

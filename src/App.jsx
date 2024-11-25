@@ -20,6 +20,9 @@ function App() {
   });
 
   useEffect(() => {
+    // Clear old auth on mount
+    localStorage.removeItem("chatAuth");
+
     const storedAuth = localStorage.getItem("chatAuth");
     if (storedAuth) {
       const { username: storedUsername, password } = JSON.parse(storedAuth);
@@ -32,8 +35,9 @@ function App() {
     });
 
     socket.on("auth-failed", () => {
+      setIsAuthenticated(false);
       localStorage.removeItem("chatAuth");
-      alert("Invalid password!");
+      alert("Invalid username or password!");
     });
 
     socket.on("connect", () => {
