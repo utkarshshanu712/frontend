@@ -11,33 +11,59 @@ const socket = io(import.meta.env.VITE_API_URL, {
   reconnectionDelay: 1000
 });
 
-
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(() => {
+    const auth = localStorage.getItem('chatAuth');
+    return auth ? JSON.parse(auth).username : "";
+  });
 
   useEffect(() => {
-    console.log('Socket connected:', socket.id);
+    const storedAuth = localStorage.getItem('chatAuth');
+    if (storedAuth) {
+      const { username: storedUsername, password } = JSON.parse(storedAuth);
+      setUsername(storedUsername);
+      socket.emit('auth', { username: storedUsername, password });
+    }
+
     socket.on("auth-success", () => {
       setIsAuthenticated(true);
     });
 
     socket.on("auth-failed", () => {
+      localStorage.removeItem('chatAuth');
       alert("Invalid password!");
+    });
+
+    socket.on("connect", () => {
+      const auth = localStorage.getItem('chatAuth');
+      if (auth) {
+        const { username, password } = JSON.parse(auth);
+        socket.emit('auth', { username, password });
+      }
     });
 
     return () => {
       socket.off("auth-success");
       socket.off("auth-failed");
+      socket.off("connect");
     };
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('chatAuth');
+    setIsAuthenticated(false);
+    setUsername("");
+    socket.disconnect();
+    window.location.reload();
+  };
 
   return (
     <AppContainer>
       {!isAuthenticated ? (
         <Login socket={socket} setUsername={setUsername} />
       ) : (
-        <Chat socket={socket} username={username} />
+        <Chat socket={socket} username={username} onLogout={handleLogout} />
       )}
     </AppContainer>
   );

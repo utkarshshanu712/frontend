@@ -2,12 +2,21 @@ import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { IoSend, IoAttach } from "react-icons/io5";
 
-function Chat({ socket, username }) {
+function Chat({ socket, username, onLogout }) {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    // Try to load messages from localStorage
+    const savedMessages = localStorage.getItem('chatMessages');
+    return savedMessages ? JSON.parse(savedMessages) : [];
+  });
   const [users, setUsers] = useState([]);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('chatMessages', JSON.stringify(messages));
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,19 +54,19 @@ function Chat({ socket, username }) {
       ]);
     });
 
-    socket.on("users-update", (updatedUsers) => {
-      setUsers(updatedUsers);
-    });
-
     socket.on("message-history", (history) => {
       setMessages(history);
+    });
+
+    socket.on("users-update", (updatedUsers) => {
+      setUsers(updatedUsers);
     });
 
     return () => {
       socket.off("receive-message");
       socket.off("receive-file");
-      socket.off("users-update");
       socket.off("message-history");
+      socket.off("users-update");
     };
   }, [socket]);
 
@@ -93,6 +102,7 @@ function Chat({ socket, username }) {
 
   return (
     <ChatContainer>
+      <LogoutButton onClick={onLogout}>Logout</LogoutButton>
       <UsersPanel>
         <h3>Online Users ({users.length})</h3>
         <UsersList>
@@ -318,6 +328,22 @@ const FileDownload = styled.a`
 
   &:hover {
     text-decoration: underline;
+  }
+`;
+
+const LogoutButton = styled.button`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--accent-color);
+  color: var(--text-primary);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  
+  &:hover {
+    opacity: 0.9;
   }
 `;
 

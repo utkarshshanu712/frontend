@@ -4,12 +4,24 @@ import styled from 'styled-components';
 function Login({ socket, setUsername }) {
   const [formData, setFormData] = useState({
     username: '',
-    password: ''
+    password: '',
+    rememberMe: true
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    socket.emit('auth', formData);
+    socket.emit('auth', {
+      username: formData.username,
+      password: formData.password
+    });
+    
+    if (formData.rememberMe) {
+      localStorage.setItem('chatAuth', JSON.stringify({
+        username: formData.username,
+        password: formData.password
+      }));
+    }
+    
     setUsername(formData.username);
   };
 
@@ -31,6 +43,15 @@ function Login({ socket, setUsername }) {
           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
           required
         />
+        <RememberMeContainer>
+          <input
+            type="checkbox"
+            id="rememberMe"
+            checked={formData.rememberMe}
+            onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
+          />
+          <label htmlFor="rememberMe">Remember me</label>
+        </RememberMeContainer>
         <button type="submit">Join Chat</button>
       </LoginForm>
     </LoginContainer>
@@ -88,6 +109,18 @@ const LoginForm = styled.form`
     &:hover {
       opacity: 0.9;
     }
+  }
+`;
+
+const RememberMeContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+  
+  input[type="checkbox"] {
+    width: auto;
+    margin: 0;
   }
 `;
 
