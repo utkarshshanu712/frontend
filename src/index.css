@@ -1,0 +1,32 @@
+:root {
+  --bg-primary: #111b21;
+  --bg-secondary: #202c33;
+  --text-primary: #e9edef;
+  --text-secondary: #8696a0;
+  --accent-color: #00a884;
+  --hover-color: #374248;
+  --message-out: #005c4b;
+  --message-in: #202c33;
+  --border-color: #374248;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  margin: 0;
+  min-height: 100vh;
+}
+
+@media (max-width: 768px) {
+  body {
+    height: 100vh;
+    overflow: hidden;
+  }
+}
