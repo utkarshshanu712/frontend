@@ -1,16 +1,15 @@
-import { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import { useState, useEffect } from "react";
+import styled from "styled-components";
 
 function Login({ socket, setUsername }) {
-<<<<<<< HEAD
   const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [selectedUser, setSelectedUser] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     // Load saved credentials
-    const savedUser = localStorage.getItem('chatUser');
+    const savedUser = localStorage.getItem("chatUser");
     if (savedUser) {
       const { username, password } = JSON.parse(savedUser);
       setSelectedUser(username);
@@ -19,63 +18,43 @@ function Login({ socket, setUsername }) {
 
     // Load available users
     fetch(`${import.meta.env.VITE_API_URL}/users`)
-      .then(res => res.json())
-      .then(users => setUsers(users))
-      .catch(err => console.error('Error loading users:', err));
+      .then((res) => res.json())
+      .then((users) => setUsers(users))
+      .catch((err) => console.error("Error loading users:", err));
   }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
-    socket.emit('auth', {
+    socket.emit("auth", {
       username: selectedUser,
-      password
+      password,
     });
 
     // Save credentials
-    localStorage.setItem('chatUser', JSON.stringify({
-      username: selectedUser,
-      password
-    }));
-    
-    setUsername(selectedUser);
-=======
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    rememberMe: true
-  });
+    localStorage.setItem(
+      "chatUser",
+      JSON.stringify({
+        username: selectedUser,
+        password,
+      })
+    );
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    socket.emit('auth', {
-      username: formData.username,
-      password: formData.password
-    });
-    
-    if (formData.rememberMe) {
-      localStorage.setItem('chatAuth', JSON.stringify({
-        username: formData.username,
-        password: formData.password
-      }));
-    }
-    
-    setUsername(formData.username);
->>>>>>> cea482f091dad818d08f257b4b2eb6dcaaef1337
+    setUsername(selectedUser);
   };
 
   return (
     <LoginContainer>
       <LoginForm onSubmit={handleSubmit}>
         <h2>Friend-Chat</h2>
-        <select 
-          value={selectedUser} 
+        <select
+          value={selectedUser}
           onChange={(e) => setSelectedUser(e.target.value)}
           required
         >
           <option value="">Select User</option>
-          {users.map(user => (
+          {users.map((user) => (
             <option key={user.username} value={user.username}>
               {user.username}
             </option>
@@ -88,19 +67,7 @@ function Login({ socket, setUsername }) {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-<<<<<<< HEAD
         {error && <ErrorMessage>{error}</ErrorMessage>}
-=======
-        <RememberMeContainer>
-          <input
-            type="checkbox"
-            id="rememberMe"
-            checked={formData.rememberMe}
-            onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
-          />
-          <label htmlFor="rememberMe">Remember me</label>
-        </RememberMeContainer>
->>>>>>> cea482f091dad818d08f257b4b2eb6dcaaef1337
         <button type="submit">Join Chat</button>
       </LoginForm>
     </LoginContainer>
@@ -111,10 +78,10 @@ const LoginContainer = styled.div`
   background: var(--bg-secondary);
   padding: 2rem;
   border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   width: 90%;
   max-width: 400px;
-  
+
   h2 {
     color: var(--accent-color);
     margin-bottom: 1.5rem;
@@ -126,7 +93,7 @@ const LoginForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  
+
   input {
     padding: 0.8rem;
     border: 1px solid var(--border-color);
@@ -134,17 +101,17 @@ const LoginForm = styled.form`
     background: var(--bg-primary);
     color: var(--text-primary);
     font-size: 1rem;
-    
+
     &::placeholder {
       color: var(--text-secondary);
     }
-    
+
     &:focus {
       outline: none;
       border-color: var(--accent-color);
     }
   }
-  
+
   button {
     background: var(--accent-color);
     color: var(--text-primary);
@@ -154,30 +121,17 @@ const LoginForm = styled.form`
     font-size: 1rem;
     cursor: pointer;
     transition: opacity 0.2s;
-    
+
     &:hover {
       opacity: 0.9;
     }
   }
 `;
 
-<<<<<<< HEAD
 const ErrorMessage = styled.p`
   color: var(--error-color);
   font-size: 0.9rem;
   margin-top: 0.5rem;
-=======
-const RememberMeContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-primary);
-  
-  input[type="checkbox"] {
-    width: auto;
-    margin: 0;
-  }
->>>>>>> cea482f091dad818d08f257b4b2eb6dcaaef1337
 `;
 
-export default Login; 
+export default Login;

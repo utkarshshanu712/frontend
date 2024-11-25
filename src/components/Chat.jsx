@@ -4,13 +4,10 @@ import { IoSend, IoAttach } from "react-icons/io5";
 
 function Chat({ socket, username, onLogout }) {
   const [message, setMessage] = useState("");
-<<<<<<< HEAD
   const [isOffline, setIsOffline] = useState(false);
-=======
->>>>>>> cea482f091dad818d08f257b4b2eb6dcaaef1337
   const [messages, setMessages] = useState(() => {
     // Try to load messages from localStorage
-    const savedMessages = localStorage.getItem('chatMessages');
+    const savedMessages = localStorage.getItem("chatMessages");
     return savedMessages ? JSON.parse(savedMessages) : [];
   });
   const [users, setUsers] = useState([]);
@@ -19,7 +16,7 @@ function Chat({ socket, username, onLogout }) {
 
   // Save messages to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('chatMessages', JSON.stringify(messages));
+    localStorage.setItem("chatMessages", JSON.stringify(messages));
   }, [messages]);
 
   const scrollToBottom = () => {
@@ -45,7 +42,7 @@ function Chat({ socket, username, onLogout }) {
   useEffect(() => {
     socket.on("use-local-storage", () => {
       setIsOffline(true);
-      const savedMessages = localStorage.getItem('chatMessages');
+      const savedMessages = localStorage.getItem("chatMessages");
       if (savedMessages) {
         setMessages(JSON.parse(savedMessages));
       }
@@ -55,7 +52,7 @@ function Chat({ socket, username, onLogout }) {
       setMessages((prev) => {
         const newMessages = [...prev, msg];
         if (isOffline) {
-          localStorage.setItem('chatMessages', JSON.stringify(newMessages));
+          localStorage.setItem("chatMessages", JSON.stringify(newMessages));
         }
         return newMessages;
       });
@@ -72,20 +69,20 @@ function Chat({ socket, username, onLogout }) {
       ]);
     });
 
-    socket.on("message-history", (history) => {
-      setMessages(history);
-    });
-
     socket.on("users-update", (updatedUsers) => {
       setUsers(updatedUsers);
+    });
+
+    socket.on("message-history", (history) => {
+      setMessages(history);
     });
 
     return () => {
       socket.off("use-local-storage");
       socket.off("receive-message");
       socket.off("receive-file");
-      socket.off("message-history");
       socket.off("users-update");
+      socket.off("message-history");
     };
   }, [socket, isOffline]);
 
@@ -360,7 +357,7 @@ const LogoutButton = styled.button`
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
-  
+
   &:hover {
     opacity: 0.9;
   }
