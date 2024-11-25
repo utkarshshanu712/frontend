@@ -46,10 +46,15 @@ function Chat({ socket, username }) {
       setUsers(updatedUsers);
     });
 
+    socket.on('message-history', (history) => {
+      setMessages(history);
+    });
+
     return () => {
       socket.off('receive-message');
       socket.off('receive-file');
       socket.off('users-update');
+      socket.off('message-history');
     };
   }, [socket]);
 
