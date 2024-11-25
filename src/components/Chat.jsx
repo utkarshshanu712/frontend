@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import styled from 'styled-components';
-import { IoSend, IoAttach } from 'react-icons/io5';
+import { useState, useEffect, useRef } from "react";
+import styled from "styled-components";
+import { IoSend, IoAttach } from "react-icons/io5";
 
 function Chat({ socket, username }) {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
   const fileInputRef = useRef(null);
@@ -23,38 +23,41 @@ function Chat({ socket, username }) {
           type: file.type,
           data: event.target.result,
         };
-        socket.emit('send-file', fileData);
+        socket.emit("send-file", fileData);
       };
       reader.readAsDataURL(file);
     }
   };
 
   useEffect(() => {
-    socket.on('receive-message', (msg) => {
+    socket.on("receive-message", (msg) => {
       setMessages((prev) => [...prev, msg]);
     });
 
-    socket.on('receive-file', (fileData) => {
-      setMessages((prev) => [...prev, {
-        ...fileData,
-        isFile: true,
-        timestamp: new Date().toISOString()
-      }]);
+    socket.on("receive-file", (fileData) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...fileData,
+          isFile: true,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
     });
 
-    socket.on('users-update', (updatedUsers) => {
+    socket.on("users-update", (updatedUsers) => {
       setUsers(updatedUsers);
     });
 
-    socket.on('message-history', (history) => {
+    socket.on("message-history", (history) => {
       setMessages(history);
     });
 
     return () => {
-      socket.off('receive-message');
-      socket.off('receive-file');
-      socket.off('users-update');
-      socket.off('message-history');
+      socket.off("receive-message");
+      socket.off("receive-file");
+      socket.off("users-update");
+      socket.off("message-history");
     };
   }, [socket]);
 
@@ -65,18 +68,18 @@ function Chat({ socket, username }) {
   const sendMessage = (e) => {
     e.preventDefault();
     if (message.trim()) {
-      socket.emit('send-message', {
+      socket.emit("send-message", {
         message: message.trim(),
         username: username,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      setMessage('');
+      setMessage("");
     }
   };
 
   const renderMessage = (msg) => {
     if (msg.isFile) {
-      if (msg.type.startsWith('image/')) {
+      if (msg.type.startsWith("image/")) {
         return <FileImage src={msg.data} alt={msg.name} />;
       }
       return (
@@ -98,14 +101,11 @@ function Chat({ socket, username }) {
           ))}
         </UsersList>
       </UsersPanel>
-      
+
       <ChatMain>
         <MessagesContainer>
           {messages.map((msg, index) => (
-            <MessageBubble
-              key={index}
-              isOwn={msg.username === username}
-            >
+            <MessageBubble key={index} isOwn={msg.username === username}>
               <Username>{msg.username}</Username>
               {renderMessage(msg)}
               <Timestamp>
@@ -115,7 +115,7 @@ function Chat({ socket, username }) {
           ))}
           <div ref={messagesEndRef} />
         </MessagesContainer>
-        
+
         <MessageForm onSubmit={sendMessage}>
           <FileInput
             type="file"
@@ -159,7 +159,7 @@ const UsersPanel = styled.div`
   width: 300px;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
-  
+
   h3 {
     padding: 1rem;
     color: var(--text-primary);
@@ -186,7 +186,7 @@ const UserItem = styled.div`
   background: var(--bg-primary);
   color: var(--text-primary);
   transition: background 0.2s;
-  
+
   &:hover {
     background: var(--hover-color);
   }
@@ -197,7 +197,7 @@ const ChatMain = styled.div`
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-  
+
   @media (max-width: 768px) {
     height: 70vh;
   }
@@ -217,9 +217,10 @@ const MessageBubble = styled.div`
   margin: 0.5rem;
   padding: 0.8rem;
   border-radius: 8px;
-  background: ${props => props.isOwn ? 'var(--message-out)' : 'var(--message-in)'};
-  align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
-  
+  background: ${(props) =>
+    props.isOwn ? "var(--message-out)" : "var(--message-in)"};
+  align-self: ${(props) => (props.isOwn ? "flex-end" : "flex-start")};
+
   @media (max-width: 768px) {
     max-width: 85%;
   }
@@ -227,7 +228,7 @@ const MessageBubble = styled.div`
 
 const Username = styled.div`
   font-size: 0.8rem;
-  color: #128C7E;
+  color: #128c7e;
   margin-bottom: 0.2rem;
 `;
 
@@ -258,7 +259,7 @@ const MessageInput = styled.input`
   background: var(--bg-primary);
   color: var(--text-primary);
   outline: none;
-  
+
   &::placeholder {
     color: var(--text-secondary);
   }
@@ -275,9 +276,9 @@ const SendButton = styled.button`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  
+
   &:hover {
-    background: #128C7E;
+    background: #128c7e;
   }
 `;
 
@@ -314,10 +315,10 @@ const FileDownload = styled.a`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  
+
   &:hover {
     text-decoration: underline;
   }
 `;
 
-export default Chat; 
+export default Chat;

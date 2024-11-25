@@ -17,6 +17,7 @@ function App() {
   const [username, setUsername] = useState("");
 
   useEffect(() => {
+    console.log('Socket connected:', socket.id);
     socket.on("auth-success", () => {
       setIsAuthenticated(true);
     });
