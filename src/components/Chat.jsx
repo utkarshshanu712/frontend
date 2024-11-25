@@ -4,7 +4,10 @@ import { IoSend, IoAttach } from "react-icons/io5";
 
 function Chat({ socket, username, onLogout }) {
   const [message, setMessage] = useState("");
+<<<<<<< HEAD
   const [isOffline, setIsOffline] = useState(false);
+=======
+>>>>>>> cea482f091dad818d08f257b4b2eb6dcaaef1337
   const [messages, setMessages] = useState(() => {
     // Try to load messages from localStorage
     const savedMessages = localStorage.getItem('chatMessages');
@@ -69,20 +72,20 @@ function Chat({ socket, username, onLogout }) {
       ]);
     });
 
-    socket.on("users-update", (updatedUsers) => {
-      setUsers(updatedUsers);
-    });
-
     socket.on("message-history", (history) => {
       setMessages(history);
+    });
+
+    socket.on("users-update", (updatedUsers) => {
+      setUsers(updatedUsers);
     });
 
     return () => {
       socket.off("use-local-storage");
       socket.off("receive-message");
       socket.off("receive-file");
-      socket.off("users-update");
       socket.off("message-history");
+      socket.off("users-update");
     };
   }, [socket, isOffline]);
 

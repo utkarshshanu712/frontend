@@ -13,7 +13,10 @@ const socket = io(import.meta.env.VITE_API_URL, {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+<<<<<<< HEAD
   const [isOffline, setIsOffline] = useState(false);
+=======
+>>>>>>> cea482f091dad818d08f257b4b2eb6dcaaef1337
   const [username, setUsername] = useState(() => {
     const auth = localStorage.getItem('chatAuth');
     return auth ? JSON.parse(auth).username : "";
@@ -37,7 +40,10 @@ function App() {
     });
 
     socket.on("connect", () => {
+<<<<<<< HEAD
       setIsOffline(false);
+=======
+>>>>>>> cea482f091dad818d08f257b4b2eb6dcaaef1337
       const auth = localStorage.getItem('chatAuth');
       if (auth) {
         const { username, password } = JSON.parse(auth);
@@ -45,15 +51,21 @@ function App() {
       }
     });
 
+<<<<<<< HEAD
     socket.on("connect_error", () => {
       setIsOffline(true);
     });
 
+=======
+>>>>>>> cea482f091dad818d08f257b4b2eb6dcaaef1337
     return () => {
       socket.off("auth-success");
       socket.off("auth-failed");
       socket.off("connect");
+<<<<<<< HEAD
       socket.off("connect_error");
+=======
+>>>>>>> cea482f091dad818d08f257b4b2eb6dcaaef1337
     };
   }, []);
 

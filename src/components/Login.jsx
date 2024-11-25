@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 function Login({ socket, setUsername }) {
+<<<<<<< HEAD
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState('');
   const [password, setPassword] = useState('');
@@ -39,6 +40,29 @@ function Login({ socket, setUsername }) {
     }));
     
     setUsername(selectedUser);
+=======
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+    rememberMe: true
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    socket.emit('auth', {
+      username: formData.username,
+      password: formData.password
+    });
+    
+    if (formData.rememberMe) {
+      localStorage.setItem('chatAuth', JSON.stringify({
+        username: formData.username,
+        password: formData.password
+      }));
+    }
+    
+    setUsername(formData.username);
+>>>>>>> cea482f091dad818d08f257b4b2eb6dcaaef1337
   };
 
   return (
@@ -64,7 +88,19 @@ function Login({ socket, setUsername }) {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+<<<<<<< HEAD
         {error && <ErrorMessage>{error}</ErrorMessage>}
+=======
+        <RememberMeContainer>
+          <input
+            type="checkbox"
+            id="rememberMe"
+            checked={formData.rememberMe}
+            onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
+          />
+          <label htmlFor="rememberMe">Remember me</label>
+        </RememberMeContainer>
+>>>>>>> cea482f091dad818d08f257b4b2eb6dcaaef1337
         <button type="submit">Join Chat</button>
       </LoginForm>
     </LoginContainer>
@@ -125,10 +161,23 @@ const LoginForm = styled.form`
   }
 `;
 
+<<<<<<< HEAD
 const ErrorMessage = styled.p`
   color: var(--error-color);
   font-size: 0.9rem;
   margin-top: 0.5rem;
+=======
+const RememberMeContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+  
+  input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+  }
+>>>>>>> cea482f091dad818d08f257b4b2eb6dcaaef1337
 `;
 
 export default Login; 
