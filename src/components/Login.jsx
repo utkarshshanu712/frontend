@@ -16,7 +16,7 @@ function Login({ socket, setUsername }) {
   return (
     <LoginContainer>
       <LoginForm onSubmit={handleSubmit}>
-        <h2>WhatsApp Clone</h2>
+        <h2>Friend-Chat</h2>
         <input
           type="text"
           placeholder="Username"
@@ -26,7 +26,7 @@ function Login({ socket, setUsername }) {
         />
         <input
           type="password"
-          placeholder="Password (test123)"
+          placeholder="Password"
           value={formData.password}
           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
           required
