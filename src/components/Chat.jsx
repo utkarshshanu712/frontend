@@ -7,11 +7,7 @@ function Chat({ socket, username, onLogout }) {
   const [isOffline, setIsOffline] = useState(false);
   const [messages, setMessages] = useState(() => {
     // Try to load messages from localStorage
-<<<<<<< HEAD
     const savedMessages = localStorage.getItem('chatMessages');
-=======
-    const savedMessages = localStorage.getItem("chatMessages");
->>>>>>> 4c0971b0b8eace7c6bcea4d9daa72477f81aa548
     return savedMessages ? JSON.parse(savedMessages) : [];
   });
   const [users, setUsers] = useState([]);
@@ -20,11 +16,7 @@ function Chat({ socket, username, onLogout }) {
 
   // Save messages to localStorage whenever they change
   useEffect(() => {
-<<<<<<< HEAD
     localStorage.setItem('chatMessages', JSON.stringify(messages));
-=======
-    localStorage.setItem("chatMessages", JSON.stringify(messages));
->>>>>>> 4c0971b0b8eace7c6bcea4d9daa72477f81aa548
   }, [messages]);
 
   const scrollToBottom = () => {
@@ -50,11 +42,7 @@ function Chat({ socket, username, onLogout }) {
   useEffect(() => {
     socket.on("use-local-storage", () => {
       setIsOffline(true);
-<<<<<<< HEAD
       const savedMessages = localStorage.getItem('chatMessages');
-=======
-      const savedMessages = localStorage.getItem("chatMessages");
->>>>>>> 4c0971b0b8eace7c6bcea4d9daa72477f81aa548
       if (savedMessages) {
         setMessages(JSON.parse(savedMessages));
       }
@@ -64,11 +52,7 @@ function Chat({ socket, username, onLogout }) {
       setMessages((prev) => {
         const newMessages = [...prev, msg];
         if (isOffline) {
-<<<<<<< HEAD
           localStorage.setItem('chatMessages', JSON.stringify(newMessages));
-=======
-          localStorage.setItem("chatMessages", JSON.stringify(newMessages));
->>>>>>> 4c0971b0b8eace7c6bcea4d9daa72477f81aa548
         }
         return newMessages;
       });
@@ -373,11 +357,7 @@ const LogoutButton = styled.button`
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
-<<<<<<< HEAD
   
-=======
-
->>>>>>> 4c0971b0b8eace7c6bcea4d9daa72477f81aa548
   &:hover {
     opacity: 0.9;
   }
