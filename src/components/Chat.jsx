@@ -2,12 +2,22 @@ import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { IoSend, IoAttach } from "react-icons/io5";
 
-function Chat({ socket, username }) {
+function Chat({ socket, username, onLogout }) {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [isOffline, setIsOffline] = useState(false);
+  const [messages, setMessages] = useState(() => {
+    // Try to load messages from localStorage
+    const savedMessages = localStorage.getItem('chatMessages');
+    return savedMessages ? JSON.parse(savedMessages) : [];
+  });
   const [users, setUsers] = useState([]);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('chatMessages', JSON.stringify(messages));
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -30,8 +40,22 @@ function Chat({ socket, username }) {
   };
 
   useEffect(() => {
+    socket.on("use-local-storage", () => {
+      setIsOffline(true);
+      const savedMessages = localStorage.getItem('chatMessages');
+      if (savedMessages) {
+        setMessages(JSON.parse(savedMessages));
+      }
+    });
+
     socket.on("receive-message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => {
+        const newMessages = [...prev, msg];
+        if (isOffline) {
+          localStorage.setItem('chatMessages', JSON.stringify(newMessages));
+        }
+        return newMessages;
+      });
     });
 
     socket.on("receive-file", (fileData) => {
@@ -54,12 +78,13 @@ function Chat({ socket, username }) {
     });
 
     return () => {
+      socket.off("use-local-storage");
       socket.off("receive-message");
       socket.off("receive-file");
       socket.off("users-update");
       socket.off("message-history");
     };
-  }, [socket]);
+  }, [socket, isOffline]);
 
   useEffect(() => {
     scrollToBottom();
@@ -93,6 +118,7 @@ function Chat({ socket, username }) {
 
   return (
     <ChatContainer>
+      <LogoutButton onClick={onLogout}>Logout</LogoutButton>
       <UsersPanel>
         <h3>Online Users ({users.length})</h3>
         <UsersList>
@@ -318,6 +344,22 @@ const FileDownload = styled.a`
 
   &:hover {
     text-decoration: underline;
+  }
+`;
+
+const LogoutButton = styled.button`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--accent-color);
+  color: var(--text-primary);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  
+  &:hover {
+    opacity: 0.9;
   }
 `;
 
