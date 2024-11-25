@@ -65,7 +65,11 @@ function Chat({ socket, username }) {
   const sendMessage = (e) => {
     e.preventDefault();
     if (message.trim()) {
-      socket.emit('send-message', message);
+      socket.emit('send-message', {
+        message: message.trim(),
+        username: username,
+        timestamp: new Date().toISOString()
+      });
       setMessage('');
     }
   };
