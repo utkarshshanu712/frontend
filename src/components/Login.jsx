@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
@@ -21,19 +22,46 @@ function Login({ socket, setUsername }) {
         return res.json();
       })
       .then(users => {
+=======
+import { useState, useEffect } from "react";
+import styled from "styled-components";
+
+function Login({ socket, setUsername }) {
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    // Clear old stored credentials
+    localStorage.removeItem("chatUser");
+    localStorage.removeItem("chatAuth");
+
+    // Load available users
+    fetch(`${import.meta.env.VITE_API_URL}/users`)
+      .then((res) => res.json())
+      .then((users) => {
+>>>>>>> 4c0971b0b8eace7c6bcea4d9daa72477f81aa548
         setUsers(users);
         if (users.length > 0) {
           setSelectedUser(users[0].username);
         }
       })
+<<<<<<< HEAD
       .catch(err => {
         console.error('Error loading users:', err);
         setError('Failed to load users. Please try again.');
+=======
+      .catch((err) => {
+        console.error("Error loading users:", err);
+        setError("Failed to load users. Please try again.");
+>>>>>>> 4c0971b0b8eace7c6bcea4d9daa72477f81aa548
       });
   }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+<<<<<<< HEAD
     setError('');
 
     if (!selectedUser) {
@@ -44,6 +72,18 @@ function Login({ socket, setUsername }) {
     socket.emit('auth', {
       username: selectedUser,
       password
+=======
+    setError("");
+
+    if (!selectedUser) {
+      setError("Please select a user");
+      return;
+    }
+
+    socket.emit("auth", {
+      username: selectedUser,
+      password,
+>>>>>>> 4c0971b0b8eace7c6bcea4d9daa72477f81aa548
     });
 
     setUsername(selectedUser);
@@ -53,13 +93,22 @@ function Login({ socket, setUsername }) {
     <LoginContainer>
       <LoginForm onSubmit={handleSubmit}>
         <h2>Friend-Chat</h2>
+<<<<<<< HEAD
         <select 
           value={selectedUser} 
+=======
+        <select
+          value={selectedUser}
+>>>>>>> 4c0971b0b8eace7c6bcea4d9daa72477f81aa548
           onChange={(e) => setSelectedUser(e.target.value)}
           required
         >
           <option value="">Select User</option>
+<<<<<<< HEAD
           {users.map(user => (
+=======
+          {users.map((user) => (
+>>>>>>> 4c0971b0b8eace7c6bcea4d9daa72477f81aa548
             <option key={user.username} value={user.username}>
               {user.username}
             </option>
@@ -83,10 +132,10 @@ const LoginContainer = styled.div`
   background: var(--bg-secondary);
   padding: 2rem;
   border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   width: 90%;
   max-width: 400px;
-  
+
   h2 {
     color: var(--accent-color);
     margin-bottom: 1.5rem;
@@ -98,7 +147,7 @@ const LoginForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  
+
   input {
     padding: 0.8rem;
     border: 1px solid var(--border-color);
@@ -106,17 +155,17 @@ const LoginForm = styled.form`
     background: var(--bg-primary);
     color: var(--text-primary);
     font-size: 1rem;
-    
+
     &::placeholder {
       color: var(--text-secondary);
     }
-    
+
     &:focus {
       outline: none;
       border-color: var(--accent-color);
     }
   }
-  
+
   button {
     background: var(--accent-color);
     color: var(--text-primary);
@@ -126,7 +175,7 @@ const LoginForm = styled.form`
     font-size: 1rem;
     cursor: pointer;
     transition: opacity 0.2s;
-    
+
     &:hover {
       opacity: 0.9;
     }
@@ -139,4 +188,8 @@ const ErrorMessage = styled.p`
   margin-top: 0.5rem;
 `;
 
+<<<<<<< HEAD
 export default Login; 
+=======
+export default Login;
+>>>>>>> 4c0971b0b8eace7c6bcea4d9daa72477f81aa548
