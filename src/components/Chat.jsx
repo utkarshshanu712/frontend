@@ -316,6 +316,7 @@ const Header = styled.header`
   background: #075e54;
   border-bottom: 1px solid #128c7e;
   position: relative;
+  color: #ffffff;
 `;
 
 const ChatLayout = styled.div`
@@ -332,7 +333,7 @@ const ChatLayout = styled.div`
 `;
 
 const Sidebar = styled.aside`
-  background: #ffffff;
+  background: #f0f2f5;
   border-right: 1px solid #e0e0e0;
   overflow-y: auto;
   height: 100%;
@@ -354,6 +355,7 @@ const UserInfo = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
+  color: #ffffff;
 `;
 
 const ProfilePicContainer = styled.div`
@@ -373,8 +375,8 @@ const DefaultProfilePic = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--accent-color);
-  color: var(--text-primary);
+  background: #128c7e;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -384,7 +386,8 @@ const CameraOverlay = styled.div`
   position: absolute;
   bottom: -5px;
   right: -5px;
-  background: var(--accent-color);
+  background: #128c7e;
+  color: #ffffff;
   border-radius: 50%;
   padding: 5px;
   cursor: pointer;
@@ -396,7 +399,7 @@ const CameraOverlay = styled.div`
 
 const Username = styled.h2`
   font-size: 1.5rem;
-  color: var(--text-primary);
+  color: #ffffff;
 `;
 
 const ButtonGroup = styled.div`
@@ -409,8 +412,8 @@ const ButtonGroup = styled.div`
 `;
 
 const Button = styled.button`
-  background: var(--accent-color);
-  color: var(--text-primary);
+  background: #128c7e;
+  color: #ffffff;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 4px;
@@ -422,14 +425,14 @@ const Button = styled.button`
 `;
 
 const UsersList = styled.div`
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
+  background: #f0f2f5;
+  border-right: 1px solid #e0e0e0;
   overflow-y: auto;
   padding: 1rem;
 
   @media (max-width: 768px) {
     border-right: none;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid #e0e0e0;
     max-height: 150px;
   }
 `;
@@ -441,10 +444,11 @@ const UserItem = styled.div`
   padding: 0.8rem;
   border-radius: 8px;
   cursor: pointer;
-  background: ${props => props.isSelected ? 'var(--hover-color)' : 'transparent'};
+  background: ${props => props.isSelected ? '#e0e0e0' : 'transparent'};
+  color: #333333;
 
   &:hover {
-    background: var(--hover-color);
+    background: #e0e0e0;
   }
 `;
 
@@ -452,8 +456,8 @@ const UserAvatar = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--accent-color);
-  color: var(--text-primary);
+  background: #128c7e;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -473,7 +477,7 @@ const MessagesContainer = styled.div`
   }
   
   &::-webkit-scrollbar-thumb {
-    background: var(--accent-color);
+    background: #128c7e;
     border-radius: 3px;
   }
 `;
@@ -507,6 +511,7 @@ const MessageBubble = styled.div`
 const MessageContent = styled.div`
   display: flex;
   flex-direction: column;
+  color: #333333;
 `;
 
 const SenderName = styled.div`
@@ -517,11 +522,12 @@ const SenderName = styled.div`
 
 const MessageText = styled.div`
   word-break: break-word;
+  color: #333333;
 `;
 
 const TimeStamp = styled.div`
   font-size: 0.7rem;
-  color: #666;
+  color: #666666;
   text-align: right;
   margin-top: 0.2rem;
 `;
@@ -529,9 +535,9 @@ const TimeStamp = styled.div`
 const MessageForm = styled.form`
   display: flex;
   padding: 1rem;
-  background: var(--bg-secondary);
+  background: #f0f2f5;
   gap: 0.8rem;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid #e0e0e0;
   position: sticky;
   bottom: 0;
 `;
@@ -539,10 +545,10 @@ const MessageForm = styled.form`
 const MessageInput = styled.textarea`
   flex: 1;
   padding: 0.8rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e0e0e0;
   border-radius: 20px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: #ffffff;
+  color: #333333;
   outline: none;
   resize: none;
   min-height: 40px;
@@ -560,11 +566,11 @@ const MessageInput = styled.textarea`
   }
   
   &::placeholder {
-    color: var(--text-secondary);
+    color: #666666;
   }
   
   &:focus {
-    border-color: var(--accent-color);
+    border-color: #128c7e;
   }
 `;
 
@@ -603,7 +609,7 @@ const AttachButton = styled.button`
 
 const DeletedMessage = styled.div`
   font-style: italic;
-  color: var(--text-secondary);
+  color: #666666;
   font-size: 0.9rem;
 `;
 
@@ -614,6 +620,7 @@ const DeleteButton = styled.button`
   opacity: 0;
   transition: opacity 0.2s;
   padding: 4px;
+  color: #666666;
   
   ${MessageContent}:hover & {
     opacity: 1;
@@ -625,12 +632,12 @@ const MessagesArea = styled.div`
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--bg-primary);
+  background: #e5ddd5;
 `;
 
 const PrivateChatIndicator = styled.div`
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: #ffffff;
   margin-left: 0.5rem;
 `;
 
@@ -639,13 +646,14 @@ const CloseButton = styled.button`
   border: none;
   cursor: pointer;
   padding: 4px;
+  color: #ffffff;
 `;
 
 const HamburgerButton = styled.button`
   display: none;
   background: transparent;
   border: none;
-  color: var(--text-primary);
+  color: #ffffff;
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0.5rem;
