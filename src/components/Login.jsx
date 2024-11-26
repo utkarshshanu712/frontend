@@ -84,6 +84,7 @@ function Login({ socket, setUsername }) {
     </LoginContainer>
   );
 }
+const Background = styled.div` background-image: url('https://images.unsplash.com/photo-1716186881947-e63e0f4cf4ae?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'); background-size: cover; background-position: center; background-attachment: fixed; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; `;
 
 const LoginContainer = styled.div`
   background-image: url('https://images.unsplash.com/photo-1716186881947-e63e0f4cf4ae?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
