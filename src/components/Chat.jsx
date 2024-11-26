@@ -488,12 +488,7 @@ const MessagesContainer = styled.div`
   }
 `;
 
-  
-  &::-webkit-scrollbar-thumb {
-    background: #404040;
-    border-radius: 3px;
-  }
-`;
+
 
 
 const MessageBubble = styled.div`
