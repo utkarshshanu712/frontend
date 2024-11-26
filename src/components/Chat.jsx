@@ -303,7 +303,7 @@ const ChatContainer = styled.div`
   width: 100vw;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: #e5ddd5;
   margin: 0;
   padding: 0;
 `;
@@ -313,8 +313,8 @@ const Header = styled.header`
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background: #075e54;
+  border-bottom: 1px solid #128c7e;
   position: relative;
 `;
 
@@ -569,8 +569,8 @@ const MessageInput = styled.textarea`
 `;
 
 const SendButton = styled.button`
-  background: var(--accent-color);
-  color: var(--text-primary);
+  background: #25d366;
+  color: #ffffff;
   border: none;
   border-radius: 50%;
   width: 40px;
@@ -587,7 +587,7 @@ const SendButton = styled.button`
 
 const AttachButton = styled.button`
   background: transparent;
-  color: var(--text-secondary);
+  color: #25d366;
   border: none;
   padding: 0.5rem;
   cursor: pointer;
@@ -597,7 +597,7 @@ const AttachButton = styled.button`
   transition: color 0.2s;
 
   &:hover {
-    color: var(--accent-color);
+    color: #128c7e;
   }
 `;
 
