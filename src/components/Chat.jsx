@@ -313,8 +313,8 @@ const Header = styled.header`
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #2c2c2c;
-  border-bottom: 1px solid #404040;
+  background: #2c4c2c;
+  border-bottom: 1px solid #3d5c3d;
   position: relative;
   color: #ffffff;
 `;
@@ -333,8 +333,8 @@ const ChatLayout = styled.div`
 `;
 
 const Sidebar = styled.aside`
-  background: #2c2c2c;
-  border-right: 1px solid #404040;
+  background: #2c4c2c;
+  border-right: 1px solid #3d5c3d;
   overflow-y: auto;
   height: 100%;
   transition: transform 0.3s ease;
@@ -376,7 +376,7 @@ const DefaultProfilePic = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #404040;
+  background: #3d5c3d;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -387,7 +387,7 @@ const CameraOverlay = styled.div`
   position: absolute;
   bottom: -5px;
   right: -5px;
-  background: #404040;
+  background: #3d5c3d;
   color: #ffffff;
   border-radius: 50%;
   padding: 5px;
@@ -413,7 +413,7 @@ const ButtonGroup = styled.div`
 `;
 
 const Button = styled.button`
-  background: #404040;
+  background: #3d5c3d;
   color: #ffffff;
   border: none;
   padding: 0.5rem 1rem;
@@ -426,14 +426,14 @@ const Button = styled.button`
 `;
 
 const UsersList = styled.div`
-  background: #2c2c2c;
-  border-right: 1px solid #404040;
+  background: #2c4c2c;
+  border-right: 1px solid #3d5c3d;
   overflow-y: auto;
   padding: 1rem;
 
   @media (max-width: 768px) {
     border-right: none;
-    border-bottom: 1px solid #404040;
+    border-bottom: 1px solid #3d5c3d;
     max-height: 150px;
   }
 `;
@@ -445,11 +445,11 @@ const UserItem = styled.div`
   padding: 0.8rem;
   border-radius: 8px;
   cursor: pointer;
-  background: ${props => props.isSelected ? '#404040' : 'transparent'};
+  background: ${props => props.isSelected ? '#3d5c3d' : 'transparent'};
   color: #ffffff;
 
   &:hover {
-    background: #404040;
+    background: #3d5c3d;
   }
 `;
 
@@ -457,7 +457,7 @@ const UserAvatar = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #404040;
+  background: #3d5c3d;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -537,9 +537,9 @@ const TimeStamp = styled.div`
 const MessageForm = styled.form`
   display: flex;
   padding: 1rem;
-  background: #2c2c2c;
+  background: #2c4c2c;
   gap: 0.8rem;
-  border-top: 1px solid #404040;
+  border-top: 1px solid #3d5c3d;
   position: sticky;
   bottom: 0;
 `;
@@ -547,7 +547,7 @@ const MessageForm = styled.form`
 const MessageInput = styled.textarea`
   flex: 1;
   padding: 0.8rem;
-  border: 1px solid #404040;
+  border: 1px solid #3d5c3d;
   border-radius: 20px;
   background: #1a1a1a;
   color: #ffffff;
@@ -563,7 +563,7 @@ const MessageInput = styled.textarea`
   }
   
   &::-webkit-scrollbar-thumb {
-    background: #404040;
+    background: #3d5c3d;
     border-radius: 2px;
   }
   
@@ -572,12 +572,12 @@ const MessageInput = styled.textarea`
   }
   
   &:focus {
-    border-color: #505050;
+    border-color: #4d6c4d;
   }
 `;
 
 const SendButton = styled.button`
-  background: #404040;
+  background: #3d5c3d;
   color: #ffffff;
   border: none;
   border-radius: 50%;
@@ -589,7 +589,7 @@ const SendButton = styled.button`
   cursor: pointer;
 
   &:hover {
-    background: #505050;
+    background: #4d6c4d;
   }
 `;
 
