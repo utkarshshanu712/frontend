@@ -306,7 +306,6 @@ const ChatContainer = styled.div`
   background: var(--bg-primary);
   margin: 0;
   padding: 0;
-  overflow: hidden;
 `;
 
 const Header = styled.header`
@@ -322,7 +321,8 @@ const Header = styled.header`
 const ChatLayout = styled.div`
   display: grid;
   grid-template-columns: ${props => props.isSidebarOpen ? '300px 1fr' : '0 1fr'};
-  height: calc(100vh - 70px);
+  flex: 1;
+  overflow: hidden;
   transition: grid-template-columns 0.3s ease;
   
   @media (max-width: 768px) {
@@ -335,6 +335,7 @@ const Sidebar = styled.aside`
   background: #ffffff;
   border-right: 1px solid #e0e0e0;
   overflow-y: auto;
+  height: 100%;
   transition: transform 0.3s ease;
   
   @media (max-width: 768px) {
@@ -623,7 +624,7 @@ const MessagesArea = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-height: 100%;
+  overflow: hidden;
   background: var(--bg-primary);
 `;
 
