@@ -474,7 +474,7 @@ const MessagesContainer = styled.div`
   flex-direction: column;
   gap: 0.5rem;
   background-image: url('https://e1.pxfuel.com/desktop-wallpaper/355/206/desktop-wallpaper-in-celebration-of-whatsapps-dark-mode-in-2020-dark-mode-phone.jpg');
-  background-size: cover;
+
   background-position: center;
   border-radius: 8px;
   
