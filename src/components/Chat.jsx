@@ -473,7 +473,7 @@ const MessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  background-image: url('https://th.bing.com/th/id/R.2be118045076a1930ed1e494a259bbfc?rik=bSzCHAlO6ex4CQ&riu=http%3a%2f%2fwallpaperstock.net%2fwhatsapp-background-wallpapers_51439_1280x1024.jpg&ehk=9G0aB2SKVSQu0zmeYQ6Z3EOqBtHt2kRO8p5rTZx1D9Y%3d&risl=&pid=ImgRaw&r=0');
+  background-image: url('https://e1.pxfuel.com/desktop-wallpaper/355/206/desktop-wallpaper-in-celebration-of-whatsapps-dark-mode-in-2020-dark-mode-phone.jpg');
   background-size: cover;
   background-position: center;
   border-radius: 8px;
