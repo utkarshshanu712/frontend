@@ -4,13 +4,22 @@ import { IoSend, IoAttach } from "react-icons/io5";
 
 function Chat({ socket, username, onLogout }) {
   const [selectedUser, setSelectedUser] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [privateMessages, setPrivateMessages] = useState({});
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
-  const [profilePic, setProfilePic] = useState(null);
+  const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  // Add new socket listeners
   useEffect(() => {
+    socket.on("users", (users) => {
+      setUsers(users.filter(user => user !== username));
+    });
+
+    socket.on("chat-message", (message) => {
+      setMessages(prev => [...prev, message]);
+    });
+
     socket.on("receive-private-message", (msg) => {
       setPrivateMessages(prev => ({
         ...prev,
@@ -18,115 +27,139 @@ function Chat({ socket, username, onLogout }) {
       }));
     });
 
-    socket.on("message-read", ({ messageId, reader }) => {
-      // Update message read status
-      setMessages(prev => prev.map(msg => 
-        msg._id === messageId ? { ...msg, readBy: [...msg.readBy, reader] } : msg
-      ));
-    });
-
-    socket.on("message-deleted", ({ messageId, deletedBy }) => {
-      setMessages(prev => prev.map(msg => 
-        msg._id === messageId 
-          ? { ...msg, deletedBy: [...(msg.deletedBy || []), deletedBy] }
-          : msg
-      ));
-      
-      setPrivateMessages(prev => {
-        const newPrivateMessages = { ...prev };
-        Object.keys(newPrivateMessages).forEach(user => {
-          newPrivateMessages[user] = newPrivateMessages[user].map(msg =>
-            msg._id === messageId 
-              ? { ...msg, deletedBy: [...(msg.deletedBy || []), deletedBy] }
-              : msg
-          );
-        });
-        return newPrivateMessages;
-      });
-    });
-
     return () => {
+      socket.off("users");
+      socket.off("chat-message");
       socket.off("receive-private-message");
-      socket.off("message-read");
-      socket.off("message-deleted");
     };
-  }, [socket]);
+  }, [socket, username]);
 
-  const sendPrivateMessage = (message) => {
-    if (selectedUser && message.trim()) {
-      socket.emit("private-message", {
-        receiver: selectedUser,
-        message: message.trim()
-      });
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, privateMessages]);
+
+  const sendMessage = (e) => {
+    e.preventDefault();
+    if (message.trim()) {
+      const messageData = {
+        message: message.trim(),
+        username,
+        timestamp: new Date().toISOString(),
+      };
+
+      if (selectedUser) {
+        socket.emit("private-message", {
+          ...messageData,
+          receiver: selectedUser
+        });
+      } else {
+        socket.emit("send-message", messageData);
+      }
+      setMessage("");
     }
   };
 
-  const changePassword = (oldPassword, newPassword) => {
-    socket.emit("change-password", {
-      username,
-      oldPassword,
-      newPassword
-    });
-  };
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const messageData = {
+          username,
+          isFile: true,
+          fileData: {
+            name: file.name,
+            type: file.type,
+            data: e.target.result
+          },
+          timestamp: new Date().toISOString()
+        };
 
-  const deleteMessage = (messageId) => {
-    socket.emit("delete-message", { messageId });
-  };
-
-  const renderMessage = (msg) => {
-    if (msg.isDeleted || (msg.deletedBy && msg.deletedBy.includes(username))) {
-      return <DeletedMessage>Message deleted</DeletedMessage>;
+        if (selectedUser) {
+          socket.emit("private-message", {
+            ...messageData,
+            receiver: selectedUser
+          });
+        } else {
+          socket.emit("send-message", messageData);
+        }
+      };
+      reader.readAsDataURL(file);
     }
-
-    return (
-      <MessageContainer>
-        {msg.isFile ? (
-          msg.type?.startsWith("image/") ? (
-            <FileImage src={msg.data} alt={msg.name} />
-          ) : (
-            <FileDownload href={msg.data} download={msg.name}>
-              📎 {msg.name}
-            </FileDownload>
-          )
-        ) : (
-          <MessageText>{msg.message}</MessageText>
-        )}
-        {msg.sender === username && (
-          <DeleteButton onClick={() => deleteMessage(msg._id)}>
-            🗑️
-          </DeleteButton>
-        )}
-      </MessageContainer>
-    );
   };
 
-  // Render chat interface with private messages and group chat
   return (
     <ChatContainer>
+      <LogoutButton onClick={onLogout}>Logout</LogoutButton>
+      
       <UsersPanel>
-        {/* User list with selection */}
+        <h3>Online Users ({users.length})</h3>
+        <UsersList>
+          <UserItem 
+            active={!selectedUser}
+            onClick={() => setSelectedUser(null)}
+          >
+            Group Chat
+          </UserItem>
+          {users.map((user) => (
+            <UserItem
+              key={user}
+              active={selectedUser === user}
+              onClick={() => setSelectedUser(user)}
+            >
+              {user}
+            </UserItem>
+          ))}
+        </UsersList>
       </UsersPanel>
-      
+
       <ChatMain>
-        {selectedUser ? (
-          <PrivateChat
-            messages={privateMessages[selectedUser] || []}
-            onSend={sendPrivateMessage}
+        <MessagesContainer>
+          {selectedUser
+            ? (privateMessages[selectedUser] || []).map((msg, index) => (
+                <MessageBubble key={index} isOwn={msg.username === username}>
+                  <Username>{msg.username}</Username>
+                  {renderMessage(msg)}
+                  <Timestamp>
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  </Timestamp>
+                </MessageBubble>
+              ))
+            : messages.map((msg, index) => (
+                <MessageBubble key={index} isOwn={msg.username === username}>
+                  <Username>{msg.username}</Username>
+                  {renderMessage(msg)}
+                  <Timestamp>
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  </Timestamp>
+                </MessageBubble>
+              ))}
+          <div ref={messagesEndRef} />
+        </MessagesContainer>
+
+        <MessageForm onSubmit={sendMessage}>
+          <FileInput
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept="image/*,.pdf,.doc,.docx"
           />
-        ) : (
-          <GroupChat
-            messages={messages}
-            onSend={sendMessage}
+          <AttachButton
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <IoAttach />
+          </AttachButton>
+          <MessageInput
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type a message..."
           />
-        )}
+          <SendButton type="submit">
+            <IoSend />
+          </SendButton>
+        </MessageForm>
       </ChatMain>
-      
-      {showPasswordChange && (
-        <PasswordChangeModal
-          onSubmit={changePassword}
-          onClose={() => setShowPasswordChange(false)}
-        />
-      )}
     </ChatContainer>
   );
 }
