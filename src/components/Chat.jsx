@@ -3,163 +3,147 @@ import styled from "styled-components";
 import { IoSend, IoAttach } from "react-icons/io5";
 
 function Chat({ socket, username, onLogout }) {
-  const [selectedUser, setSelectedUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [privateMessages, setPrivateMessages] = useState({});
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
   const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const [deletedMessages, setDeletedMessages] = useState(new Set());
 
   useEffect(() => {
-    socket.on("users", (users) => {
-      setUsers(users.filter(user => user !== username));
+    socket.on("users-update", (updatedUsers) => {
+      setUsers(updatedUsers.filter(user => user !== username));
     });
 
     socket.on("chat-message", (message) => {
       setMessages(prev => [...prev, message]);
     });
 
-    socket.on("receive-private-message", (msg) => {
-      setPrivateMessages(prev => ({
-        ...prev,
-        [msg.sender]: [...(prev[msg.sender] || []), msg]
-      }));
+    socket.on("message-history", (history) => {
+      setMessages(history);
+    });
+
+    socket.on("password-change-success", () => {
+      alert("Password changed successfully!");
+      setShowPasswordChange(false);
+    });
+
+    socket.on("password-change-failed", () => {
+      alert("Failed to change password. Please try again.");
+    });
+
+    socket.on("message-deleted", ({ messageId, deletedBy }) => {
+      setDeletedMessages(prev => new Set([...prev, messageId]));
     });
 
     return () => {
-      socket.off("users");
+      socket.off("users-update");
       socket.off("chat-message");
-      socket.off("receive-private-message");
+      socket.off("message-history");
+      socket.off("password-change-success");
+      socket.off("password-change-failed");
+      socket.off("message-deleted");
     };
   }, [socket, username]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, privateMessages]);
 
   const sendMessage = (e) => {
     e.preventDefault();
     if (message.trim()) {
-      const messageData = {
-        message: message.trim(),
-        username,
-        timestamp: new Date().toISOString(),
-      };
-
       if (selectedUser) {
         socket.emit("private-message", {
-          ...messageData,
-          receiver: selectedUser
+          receiver: selectedUser,
+          message: message.trim()
         });
       } else {
-        socket.emit("send-message", messageData);
+        socket.emit("send-message", {
+          message: message.trim()
+        });
       }
       setMessage("");
     }
   };
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const messageData = {
-          username,
-          isFile: true,
-          fileData: {
-            name: file.name,
-            type: file.type,
-            data: e.target.result
-          },
-          timestamp: new Date().toISOString()
-        };
-
-        if (selectedUser) {
-          socket.emit("private-message", {
-            ...messageData,
-            receiver: selectedUser
-          });
-        } else {
-          socket.emit("send-message", messageData);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleDeleteMessage = (messageId) => {
+    socket.emit("delete-message", { messageId });
   };
 
   return (
     <ChatContainer>
-      <LogoutButton onClick={onLogout}>Logout</LogoutButton>
-      
-      <UsersPanel>
-        <h3>Online Users ({users.length})</h3>
-        <UsersList>
-          <UserItem 
-            active={!selectedUser}
-            onClick={() => setSelectedUser(null)}
-          >
-            Group Chat
-          </UserItem>
-          {users.map((user) => (
-            <UserItem
-              key={user}
-              active={selectedUser === user}
-              onClick={() => setSelectedUser(user)}
-            >
-              {user}
-            </UserItem>
-          ))}
-        </UsersList>
-      </UsersPanel>
+      <Header>
+        <h2>Chat Room</h2>
+        <ButtonGroup>
+          <Button onClick={() => setShowPasswordChange(true)}>
+            Change Password
+          </Button>
+          <Button onClick={onLogout}>Logout</Button>
+        </ButtonGroup>
+      </Header>
 
       <ChatMain>
+        <UsersPanel>
+          <h3>Online Users ({users.length})</h3>
+          <UsersList>
+            {users.map((user, index) => (
+              <UserItem 
+                key={index}
+                isSelected={user === selectedUser}
+                onClick={() => setSelectedUser(user === selectedUser ? null : user)}
+              >
+                {user}
+              </UserItem>
+            ))}
+          </UsersList>
+        </UsersPanel>
+
         <MessagesContainer>
-          {selectedUser
-            ? (privateMessages[selectedUser] || []).map((msg, index) => (
-                <MessageBubble key={index} isOwn={msg.username === username}>
-                  <Username>{msg.username}</Username>
-                  {renderMessage(msg)}
-                  <Timestamp>
-                    {new Date(msg.timestamp).toLocaleTimeString()}
-                  </Timestamp>
-                </MessageBubble>
-              ))
-            : messages.map((msg, index) => (
-                <MessageBubble key={index} isOwn={msg.username === username}>
-                  <Username>{msg.username}</Username>
-                  {renderMessage(msg)}
-                  <Timestamp>
-                    {new Date(msg.timestamp).toLocaleTimeString()}
-                  </Timestamp>
-                </MessageBubble>
-              ))}
+          {messages.map((msg, index) => (
+            <MessageContainer key={index}>
+              <MessageBubble isOwn={msg.sender === username || msg.username === username}>
+                {deletedMessages.has(msg._id) ? (
+                  <DeletedMessage>Message deleted</DeletedMessage>
+                ) : (
+                  <>
+                    <Username>{msg.sender || msg.username}</Username>
+                    <MessageText>{msg.message}</MessageText>
+                    <Timestamp>{new Date(msg.timestamp).toLocaleTimeString()}</Timestamp>
+                    {(msg.sender === username || msg.username === username) && (
+                      <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
+                        ×
+                      </DeleteButton>
+                    )}
+                  </>
+                )}
+              </MessageBubble>
+            </MessageContainer>
+          ))}
           <div ref={messagesEndRef} />
         </MessagesContainer>
 
         <MessageForm onSubmit={sendMessage}>
-          <FileInput
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileSelect}
-            accept="image/*,.pdf,.doc,.docx"
-          />
-          <AttachButton
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <IoAttach />
-          </AttachButton>
           <MessageInput
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type a message..."
+            placeholder={`Message ${selectedUser || 'everyone'}...`}
           />
           <SendButton type="submit">
             <IoSend />
           </SendButton>
         </MessageForm>
       </ChatMain>
+
+      {showPasswordChange && (
+        <PasswordChangeModal
+          onClose={() => setShowPasswordChange(false)}
+          onSubmit={(oldPassword, newPassword) => {
+            socket.emit("change-password", {
+              username,
+              oldPassword,
+              newPassword
+            });
+          }}
+        />
+      )}
     </ChatContainer>
   );
 }
@@ -173,6 +157,58 @@ const ChatContainer = styled.div`
 
   @media (max-width: 768px) {
     flex-direction: column;
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+
+  h2 {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0.5rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+`;
+
+const Button = styled.button`
+  background: var(--accent-color);
+  color: var(--text-primary);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const ChatMain = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+
+  @media (max-width: 768px) {
+    height: 70vh;
   }
 `;
 
@@ -210,17 +246,6 @@ const UserItem = styled.div`
 
   &:hover {
     background: var(--hover-color);
-  }
-`;
-
-const ChatMain = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-primary);
-
-  @media (max-width: 768px) {
-    height: 70vh;
   }
 `;
 
