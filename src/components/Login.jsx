@@ -86,7 +86,7 @@ function Login({ socket, setUsername }) {
 }
 
 const LoginContainer = styled.div`
-  background-image: url('https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDF8fGJhY2tncm91bmQlMjBpbWFnZXxlbnwwfHx8fDE2MzY5MjY0MjM&ixlib=rb-1.2.1&q=80&w=1080');
+  background-image: url('https://plus.unsplash.com/premium_photo-1671617779915-80d66fcfe002?q=80&w=1935&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
