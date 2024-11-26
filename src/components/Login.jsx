@@ -41,6 +41,12 @@ function Login({ socket, setUsername }) {
       return;
     }
 
+    // Store credentials temporarily in sessionStorage
+    sessionStorage.setItem('tempAuth', JSON.stringify({
+      username: selectedUser,
+      password
+    }));
+
     socket.emit('auth', {
       username: selectedUser,
       password

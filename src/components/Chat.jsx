@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
-import { IoSend, IoAttach } from "react-icons/io5";
+import { IoSend, IoAttach, IoCamera, IoClose } from "react-icons/io5";
+import PasswordChangeModal from "./PasswordChangeModal";
 
 function Chat({ socket, username, onLogout }) {
   const [users, setUsers] = useState([]);
@@ -8,16 +9,33 @@ function Chat({ socket, username, onLogout }) {
   const [messages, setMessages] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
-  const messagesEndRef = useRef(null);
+  const [profilePic, setProfilePic] = useState(null);
   const [deletedMessages, setDeletedMessages] = useState(new Set());
+  const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   useEffect(() => {
+    // Load profile picture if exists
+    const savedProfilePic = localStorage.getItem(`profilePic_${username}`);
+    if (savedProfilePic) {
+      setProfilePic(savedProfilePic);
+    }
+
     socket.on("users-update", (updatedUsers) => {
       setUsers(updatedUsers.filter(user => user !== username));
     });
 
     socket.on("chat-message", (message) => {
       setMessages(prev => [...prev, message]);
+    });
+
+    socket.on("private-message", (message) => {
+      setMessages(prev => [...prev, { ...message, isPrivate: true }]);
     });
 
     socket.on("message-history", (history) => {
@@ -37,13 +55,23 @@ function Chat({ socket, username, onLogout }) {
       setDeletedMessages(prev => new Set([...prev, messageId]));
     });
 
+    socket.on("profile-pic-updated", ({ success }) => {
+      if (success) {
+        alert("Profile picture updated successfully!");
+      } else {
+        alert("Failed to update profile picture. Please try again.");
+      }
+    });
+
     return () => {
       socket.off("users-update");
       socket.off("chat-message");
+      socket.off("private-message");
       socket.off("message-history");
       socket.off("password-change-success");
       socket.off("password-change-failed");
       socket.off("message-deleted");
+      socket.off("profile-pic-updated");
     };
   }, [socket, username]);
 
@@ -68,10 +96,59 @@ function Chat({ socket, username, onLogout }) {
     socket.emit("delete-message", { messageId });
   };
 
+  const handleProfilePicChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5000000) { // 5MB limit
+        alert("File size too large. Please choose an image under 5MB.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const imageData = reader.result;
+        socket.emit("update-profile-pic", {
+          username,
+          profilePic: imageData
+        });
+        setProfilePic(imageData);
+        localStorage.setItem(`profilePic_${username}`, imageData);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <ChatContainer>
       <Header>
-        <h2>Chat Room</h2>
+        <UserInfo>
+          <ProfilePicContainer>
+            {profilePic ? (
+              <ProfilePic src={profilePic} alt={username} />
+            ) : (
+              <DefaultProfilePic>{username[0].toUpperCase()}</DefaultProfilePic>
+            )}
+            <CameraOverlay onClick={() => fileInputRef.current?.click()}>
+              <IoCamera />
+            </CameraOverlay>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleProfilePicChange}
+              accept="image/*"
+              style={{ display: 'none' }}
+            />
+          </ProfilePicContainer>
+          <Username>{username}</Username>
+          {selectedUser && (
+            <PrivateChatIndicator>
+              Chatting with {selectedUser}
+              <CloseButton onClick={() => setSelectedUser(null)}>
+                <IoClose />
+              </CloseButton>
+            </PrivateChatIndicator>
+          )}
+        </UserInfo>
         <ButtonGroup>
           <Button onClick={() => setShowPasswordChange(true)}>
             Change Password
@@ -80,57 +157,64 @@ function Chat({ socket, username, onLogout }) {
         </ButtonGroup>
       </Header>
 
-      <ChatMain>
-        <UsersPanel>
+      <ChatLayout>
+        <Sidebar>
           <h3>Online Users ({users.length})</h3>
           <UsersList>
-            {users.map((user, index) => (
-              <UserItem 
-                key={index}
+            {users.map((user) => (
+              <UserItem
+                key={user}
                 isSelected={user === selectedUser}
                 onClick={() => setSelectedUser(user === selectedUser ? null : user)}
               >
-                {user}
+                <UserAvatar>{user[0].toUpperCase()}</UserAvatar>
+                <span>{user}</span>
               </UserItem>
             ))}
           </UsersList>
-        </UsersPanel>
+        </Sidebar>
 
-        <MessagesContainer>
-          {messages.map((msg, index) => (
-            <MessageContainer key={index}>
-              <MessageBubble isOwn={msg.sender === username || msg.username === username}>
+        <MessagesArea>
+          <MessagesContainer>
+            {messages.map((msg, index) => (
+              <MessageBubble
+                key={index}
+                isOwn={msg.sender === username || msg.username === username}
+                isPrivate={msg.isPrivate}
+              >
                 {deletedMessages.has(msg._id) ? (
                   <DeletedMessage>Message deleted</DeletedMessage>
                 ) : (
-                  <>
-                    <Username>{msg.sender || msg.username}</Username>
+                  <MessageContent>
+                    <SenderName>{msg.sender || msg.username}</SenderName>
                     <MessageText>{msg.message}</MessageText>
-                    <Timestamp>{new Date(msg.timestamp).toLocaleTimeString()}</Timestamp>
+                    <TimeStamp>
+                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    </TimeStamp>
                     {(msg.sender === username || msg.username === username) && (
                       <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
-                        ×
+                        <IoClose />
                       </DeleteButton>
                     )}
-                  </>
+                  </MessageContent>
                 )}
               </MessageBubble>
-            </MessageContainer>
-          ))}
-          <div ref={messagesEndRef} />
-        </MessagesContainer>
+            ))}
+            <div ref={messagesEndRef} />
+          </MessagesContainer>
 
-        <MessageForm onSubmit={sendMessage}>
-          <MessageInput
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={`Message ${selectedUser || 'everyone'}...`}
-          />
-          <SendButton type="submit">
-            <IoSend />
-          </SendButton>
-        </MessageForm>
-      </ChatMain>
+          <MessageForm onSubmit={sendMessage}>
+            <MessageInput
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={`Message ${selectedUser || 'everyone'}...`}
+            />
+            <SendButton type="submit">
+              <IoSend />
+            </SendButton>
+          </MessageForm>
+        </MessagesArea>
+      </ChatLayout>
 
       {showPasswordChange && (
         <PasswordChangeModal
@@ -149,34 +233,95 @@ function Chat({ socket, username, onLogout }) {
 }
 
 const ChatContainer = styled.div`
-  display: flex;
-  width: 100%;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-primary);
-  overflow: hidden;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
 `;
 
-const Header = styled.div`
+const Header = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
+  position: relative;
+`;
 
-  h2 {
-    font-size: 1.5rem;
-    color: var(--text-primary);
-  }
-
+const ChatLayout = styled.div`
+  display: flex;
+  height: calc(100vh - 70px);
+  
   @media (max-width: 768px) {
     flex-direction: column;
-    align-items: flex-start;
   }
+`;
+
+const Sidebar = styled.aside`
+  width: 280px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  padding: 1rem;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    height: 100px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+`;
+
+const UserInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const ProfilePicContainer = styled.div`
+  position: relative;
+  width: 40px;
+  height: 40px;
+`;
+
+const ProfilePic = styled.img`
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+`;
+
+const DefaultProfilePic = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const CameraOverlay = styled.div`
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: var(--accent-color);
+  border-radius: 50%;
+  padding: 5px;
+  cursor: pointer;
+  
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const Username = styled.h2`
+  font-size: 1.5rem;
+  color: var(--text-primary);
 `;
 
 const ButtonGroup = styled.div`
@@ -201,61 +346,64 @@ const Button = styled.button`
   }
 `;
 
-const ChatMain = styled.div`
+const ChatMain = styled.main`
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-primary);
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  overflow: hidden;
 
   @media (max-width: 768px) {
-    height: 70vh;
-  }
-`;
-
-const UsersPanel = styled.div`
-  width: 300px;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
-
-  h3 {
-    padding: 1rem;
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  @media (max-width: 768px) {
-    width: 100%;
-    height: auto;
-    max-height: 30vh;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
   }
 `;
 
 const UsersList = styled.div`
-  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
   overflow-y: auto;
-  height: calc(100% - 60px);
+  padding: 1rem;
+
+  @media (max-width: 768px) {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    max-height: 150px;
+  }
 `;
 
 const UserItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.8rem;
   border-radius: 8px;
-  margin-bottom: 0.5rem;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  transition: background 0.2s;
+  cursor: pointer;
+  background: ${props => props.isSelected ? 'var(--hover-color)' : 'transparent'};
 
   &:hover {
     background: var(--hover-color);
   }
 `;
 
+const UserAvatar = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.5rem;
+`;
+
 const MessagesContainer = styled.div`
   flex: 1;
-  padding: 1rem;
   overflow-y: auto;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  gap: 0.5rem;
 `;
 
 const MessageBubble = styled.div`
@@ -272,7 +420,12 @@ const MessageBubble = styled.div`
   }
 `;
 
-const Username = styled.div`
+const MessageContent = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const SenderName = styled.div`
   font-size: 0.8rem;
   color: #128c7e;
   margin-bottom: 0.2rem;
@@ -282,7 +435,7 @@ const MessageText = styled.div`
   word-break: break-word;
 `;
 
-const Timestamp = styled.div`
+const TimeStamp = styled.div`
   font-size: 0.7rem;
   color: #666;
   text-align: right;
@@ -308,6 +461,10 @@ const MessageInput = styled.input`
 
   &::placeholder {
     color: var(--text-secondary);
+  }
+  
+  &:focus {
+    border-color: var(--accent-color);
   }
 `;
 
@@ -406,6 +563,65 @@ const DeleteButton = styled.button`
   
   ${MessageContainer}:hover & {
     opacity: 1;
+  }
+`;
+
+const MessagesArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+`;
+
+const MessageInputContainer = styled.div`
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const IconButton = styled.button`
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const PrivateChatIndicator = styled.div`
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-left: 0.5rem;
+`;
+
+const CloseButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+`;
+
+const ProfilePicInput = styled.input`
+  display: none;
+`;
+
+const ProfilePicButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  
+  &:hover {
+    opacity: 0.8;
   }
 `;
 
