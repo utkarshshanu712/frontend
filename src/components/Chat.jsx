@@ -306,6 +306,7 @@ const ChatContainer = styled.div`
   background: #111B21;
   margin: 0;
   padding: 0;
+  background-image: url('https://th.bing.com/th/id/R.2be118045076a1930ed1e494a259bbfc?rik=bSzCHAlO6ex4CQ&riu=http%3a%2f%2fwallpaperstock.net%2fwhatsapp-background-wallpapers_51439_1280x1024.jpg&ehk=9G0aB2SKVSQu0zmeYQ6Z3EOqBtHt2kRO8p5rTZx1D9Y%3d&risl=&pid=ImgRaw&r=0'); background-size: cover;
 `;
 
 const Header = styled.header`
