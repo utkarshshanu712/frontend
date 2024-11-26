@@ -15,24 +15,38 @@ function Chat({ socket, username, onLogout }) {
   const fileInputRef = useRef(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      const smoothScroll = () => {
+        messagesEndRef.current.scrollIntoView({ 
+          behavior: "smooth",
+          block: "end"
+        });
+      };
+      
+      // Small delay to ensure content is rendered
+      setTimeout(smoothScroll, 100);
+    }
   }, [messages]);
 
   useEffect(() => {
+    // Load profile picture if exists
     const savedProfilePic = localStorage.getItem(`profilePic_${username}`);
-    if (savedProfilePic) setProfilePic(savedProfilePic);
+    if (savedProfilePic) {
+      setProfilePic(savedProfilePic);
+    }
 
     socket.on("users-update", (updatedUsers) => {
-      setUsers(updatedUsers.filter((user) => user !== username));
+      setUsers(updatedUsers.filter(user => user !== username));
     });
 
     socket.on("chat-message", (message) => {
-      setMessages((prev) => [...prev, message]);
+      setMessages(prev => [...prev, message]);
     });
 
     socket.on("private-message", (message) => {
-      setMessages((prev) => [...prev, { ...message, isPrivate: true }]);
+      setMessages(prev => [...prev, { ...message, isPrivate: true }]);
     });
 
     socket.on("message-history", (history) => {
@@ -48,8 +62,29 @@ function Chat({ socket, username, onLogout }) {
       alert("Failed to change password. Please try again.");
     });
 
-    socket.on("message-deleted", ({ messageId }) => {
-      setDeletedMessages((prev) => new Set([...prev, messageId]));
+    socket.on("message-deleted", ({ messageId, deletedBy }) => {
+      setDeletedMessages(prev => new Set([...prev, messageId]));
+    });
+
+    socket.on("profile-pic-updated", ({ success }) => {
+      if (success) {
+        alert("Profile picture updated successfully!");
+      } else {
+        alert("Failed to update profile picture. Please try again.");
+      }
+    });
+
+    socket.on("receive-message", (message) => {
+      setMessages(prev => [...prev, message]);
+    });
+
+    socket.on("receive-file", (fileMessage) => {
+      setMessages(prev => [...prev, fileMessage]);
+    });
+
+    // Remove duplicate message-history listener
+    socket.on("message-history", (history) => {
+      setMessages(history);
     });
 
     return () => {
@@ -60,18 +95,24 @@ function Chat({ socket, username, onLogout }) {
       socket.off("password-change-success");
       socket.off("password-change-failed");
       socket.off("message-deleted");
+      socket.off("profile-pic-updated");
+      socket.off("receive-message");
+      socket.off("receive-file");
     };
   }, [socket, username]);
 
   const sendMessage = (e) => {
     e.preventDefault();
     if (message.trim()) {
-      const messagePayload = { message: message.trim() };
       if (selectedUser) {
-        messagePayload.receiver = selectedUser;
-        socket.emit("private-message", messagePayload);
+        socket.emit("private-message", {
+          receiver: selectedUser,
+          message: message.trim()
+        });
       } else {
-        socket.emit("send-message", messagePayload);
+        socket.emit("send-message", {
+          message: message.trim()
+        });
       }
       setMessage("");
     }
@@ -84,14 +125,49 @@ function Chat({ socket, username, onLogout }) {
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (file.size > 50000000) { // 50MB limit
+        alert("File size too large. Please choose an image under 50MB.");
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
         const imageData = reader.result;
-        socket.emit("update-profile-pic", { username, profilePic: imageData });
+        socket.emit("update-profile-pic", {
+          username,
+          profilePic: imageData
+        });
         setProfilePic(imageData);
         localStorage.setItem(`profilePic_${username}`, imageData);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 50000000) { // 50MB limit
+        alert("File size too large. Please choose a file under 50MB.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        socket.emit("send-file", {
+          name: file.name,
+          type: file.type,
+          data: reader.result
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(e);
     }
   };
 
@@ -116,10 +192,18 @@ function Chat({ socket, username, onLogout }) {
               ref={fileInputRef}
               onChange={handleProfilePicChange}
               accept="image/*"
-              style={{ display: "none" }}
+              style={{ display: 'none' }}
             />
           </ProfilePicContainer>
           <Username>{username}</Username>
+          {selectedUser && (
+            <PrivateChatIndicator>
+              Chatting with {selectedUser}
+              <CloseButton onClick={() => setSelectedUser(null)}>
+                <IoClose />
+              </CloseButton>
+            </PrivateChatIndicator>
+          )}
         </UserInfo>
         <ButtonGroup>
           <Button onClick={() => setShowPasswordChange(true)}>
@@ -137,9 +221,7 @@ function Chat({ socket, username, onLogout }) {
               <UserItem
                 key={user}
                 isSelected={user === selectedUser}
-                onClick={() =>
-                  setSelectedUser(user === selectedUser ? null : user)
-                }
+                onClick={() => setSelectedUser(user === selectedUser ? null : user)}
               >
                 <UserAvatar>{user[0].toUpperCase()}</UserAvatar>
                 <span>{user}</span>
@@ -165,6 +247,11 @@ function Chat({ socket, username, onLogout }) {
                     <TimeStamp>
                       {new Date(msg.timestamp).toLocaleTimeString()}
                     </TimeStamp>
+                    {(msg.sender === username || msg.username === username) && (
+                      <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
+                        <IoClose />
+                      </DeleteButton>
+                    )}
                   </MessageContent>
                 )}
               </MessageBubble>
@@ -176,7 +263,17 @@ function Chat({ socket, username, onLogout }) {
             <MessageInput
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder={`Message ${selectedUser || "everyone"}...`}
+              onKeyPress={handleKeyPress}
+              placeholder={`Message ${selectedUser || 'everyone'}...`}
+            />
+            <AttachButton onClick={() => fileInputRef.current.click()}>
+              <IoAttach />
+            </AttachButton>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
             />
             <SendButton type="submit">
               <IoSend />
@@ -188,253 +285,375 @@ function Chat({ socket, username, onLogout }) {
       {showPasswordChange && (
         <PasswordChangeModal
           onClose={() => setShowPasswordChange(false)}
-          onSubmit={(oldPassword, newPassword) =>
+          onSubmit={(oldPassword, newPassword) => {
             socket.emit("change-password", {
               username,
               oldPassword,
-              newPassword,
-            })
-          }
+              newPassword
+            });
+          }}
         />
       )}
     </ChatContainer>
   );
 }
 
-
-export const ChatContainer = styled.div`
+const ChatContainer = styled.div`
+  height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background-color: #f0f0f0;
-  color: #333;
-  font-family: Arial, sans-serif;
+  background: var(--bg-primary);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 `;
 
-export const Header = styled.header`
+const Header = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
-  background-color: #3f51b5;
-  color: white;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  position: relative;
 `;
 
-export const UserInfo = styled.div`
+const ChatLayout = styled.div`
+  display: grid;
+  grid-template-columns: ${props => props.isSidebarOpen ? '300px 1fr' : '0 1fr'};
+  height: calc(100vh - 70px);
+  transition: grid-template-columns 0.3s ease;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    position: relative;
+  }
+`;
+
+const Sidebar = styled.aside`
+  background: #ffffff;
+  border-right: 1px solid #e0e0e0;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+  
+  @media (max-width: 768px) {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    transform: translateX(${props => props.isOpen ? '0' : '-100%'});
+    z-index: 10;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const UserInfo = styled.div`
   display: flex;
   align-items: center;
+  gap: 1rem;
 `;
 
-export const ProfilePicContainer = styled.div`
+const ProfilePicContainer = styled.div`
   position: relative;
-  margin-right: 10px;
+  width: 40px;
+  height: 40px;
 `;
 
-export const ProfilePic = styled.img`
-  width: 50px;
-  height: 50px;
+const ProfilePic = styled.img`
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid white;
 `;
 
-export const DefaultProfilePic = styled.div`
-  width: 50px;
-  height: 50px;
+const DefaultProfilePic = styled.div`
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background-color: #ccc;
+  background: var(--accent-color);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  color: white;
-  border: 2px solid white;
 `;
 
-export const CameraOverlay = styled.div`
+const CameraOverlay = styled.div`
   position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 20px;
-  height: 20px;
-  background-color: #fff;
+  bottom: -5px;
+  right: -5px;
+  background: var(--accent-color);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #3f51b5;
+  padding: 5px;
   cursor: pointer;
+  
+  &:hover {
+    opacity: 0.9;
+  }
 `;
 
-export const Username = styled.span`
-  font-size: 18px;
-  font-weight: bold;
+const Username = styled.h2`
+  font-size: 1.5rem;
+  color: var(--text-primary);
 `;
 
-export const ButtonGroup = styled.div`
+const ButtonGroup = styled.div`
   display: flex;
-  gap: 10px;
+  gap: 0.5rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
 `;
 
-export const Button = styled.button`
-  padding: 5px 15px;
-  font-size: 14px;
-  background-color: #ffffff;
-  color: #3f51b5;
-  border: 1px solid #ffffff;
-  border-radius: 3px;
+const Button = styled.button`
+  background: var(--accent-color);
+  color: var(--text-primary);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
   cursor: pointer;
 
   &:hover {
-    background-color: #3f51b5;
-    color: #fff;
-    border: 1px solid #fff;
+    opacity: 0.9;
   }
 `;
 
-export const ChatLayout = styled.div`
-  display: flex;
-  height: 100%;
-`;
-
-export const Sidebar = styled.div`
-  flex: 0 0 250px;
-  background-color: #eeeeee;
-  padding: 20px;
+const UsersList = styled.div`
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
   overflow-y: auto;
-  display: ${(props) => (props.isOpen ? "block" : "none")};
-  transition: transform 0.3s;
+  padding: 1rem;
 
-  h3 {
-    margin-bottom: 10px;
-    color: #3f51b5;
+  @media (max-width: 768px) {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    max-height: 150px;
   }
 `;
 
-export const UsersList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-`;
-
-export const UserItem = styled.li`
+const UserItem = styled.div`
   display: flex;
   align-items: center;
-  padding: 10px;
-  margin-bottom: 5px;
-  background-color: ${(props) => (props.isSelected ? "#3f51b5" : "transparent")};
-  color: ${(props) => (props.isSelected ? "white" : "#333")};
-  border-radius: 5px;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border-radius: 8px;
   cursor: pointer;
+  background: ${props => props.isSelected ? 'var(--hover-color)' : 'transparent'};
 
   &:hover {
-    background-color: #3f51b5;
-    color: white;
+    background: var(--hover-color);
   }
 `;
 
-export const UserAvatar = styled.div`
-  width: 30px;
-  height: 30px;
+const UserAvatar = styled.div`
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background-color: #ccc;
+  background: var(--accent-color);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 10px;
-  font-size: 16px;
-  font-weight: bold;
-  color: white;
+  margin-right: 0.5rem;
 `;
 
-export const MessagesArea = styled.div`
+const MessagesContainer = styled.div`
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  background-color: #ffffff;
-`;
-
-export const MessagesContainer = styled.div`
-  flex: 1;
-  padding: 20px;
   overflow-y: auto;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 3px;
+  }
 `;
 
-export const MessageBubble = styled.div`
-  align-self: ${(props) => (props.isOwn ? "flex-end" : "flex-start")};
-  max-width: 60%;
-  padding: 10px;
-  margin: 5px 0;
-  border-radius: 10px;
-  background-color: ${(props) =>
-    props.isOwn ? "#d1e7ff" : props.isPrivate ? "#ffe4b5" : "#f1f1f1"};
-  color: #333;
+const MessageBubble = styled.div`
+  max-width: 65%;
+  margin: 0.5rem;
+  padding: 0.8rem;
+  border-radius: 7.5px;
   position: relative;
+  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+  background: ${props => props.isOwn ? "#dcf8c6" : "#ffffff"};
+  align-self: ${props => props.isOwn ? "flex-end" : "flex-start"};
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    ${props => props.isOwn ? "right: -8px" : "left: -8px"};
+    width: 0;
+    height: 0;
+    border-top: 8px solid ${props => props.isOwn ? "#dcf8c6" : "#ffffff"};
+    border-${props => props.isOwn ? "left" : "right"}: 8px solid transparent;
+  }
+
+  @media (max-width: 768px) {
+    max-width: 85%;
+  }
 `;
 
-export const SenderName = styled.span`
-  font-weight: bold;
-  font-size: 12px;
+const MessageContent = styled.div`
+  display: flex;
+  flex-direction: column;
 `;
 
-export const MessageText = styled.p`
-  margin: 5px 0;
+const SenderName = styled.div`
+  font-size: 0.8rem;
+  color: #128c7e;
+  margin-bottom: 0.2rem;
 `;
 
-export const TimeStamp = styled.span`
-  font-size: 10px;
+const MessageText = styled.div`
+  word-break: break-word;
+`;
+
+const TimeStamp = styled.div`
+  font-size: 0.7rem;
   color: #666;
-  position: absolute;
-  bottom: 5px;
-  right: 10px;
+  text-align: right;
+  margin-top: 0.2rem;
 `;
 
-export const DeletedMessage = styled.span`
-  font-style: italic;
-  color: #999;
+const MessageForm = styled.form`
+  display: flex;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  gap: 0.8rem;
+  border-top: 1px solid var(--border-color);
+  position: sticky;
+  bottom: 0;
 `;
 
-export const MessageForm = styled.form`
+const MessageInput = styled.textarea`
+  flex: 1;
+  padding: 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+  resize: none;
+  min-height: 40px;
+  max-height: 100px;
+  overflow-y: auto;
+  word-break: break-word;
+  
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+  }
+  
+  &::placeholder {
+    color: var(--text-secondary);
+  }
+  
+  &:focus {
+    border-color: var(--accent-color);
+  }
+`;
+
+const SendButton = styled.button`
+  background: var(--accent-color);
+  color: var(--text-primary);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
-  padding: 10px;
-  background-color: #f0f0f0;
-`;
-
-export const MessageInput = styled.input`
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 20px;
-  outline: none;
-  margin-right: 10px;
-`;
-
-export const SendButton = styled.button`
-  background-color: #3f51b5;
-  border: none;
-  color: white;
-  font-size: 18px;
-  padding: 10px;
-  border-radius: 50%;
+  justify-content: center;
   cursor: pointer;
 
   &:hover {
-    background-color: #2c387e;
+    background: #128c7e;
   }
 `;
 
-export const HamburgerButton = styled.button`
-  background: none;
+const AttachButton = styled.button`
+  background: transparent;
+  color: var(--text-secondary);
   border: none;
-  color: white;
-  font-size: 24px;
+  padding: 0.5rem;
   cursor: pointer;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
 
   &:hover {
-    color: #dddddd;
+    color: var(--accent-color);
   }
 `;
+
+const DeletedMessage = styled.div`
+  font-style: italic;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+`;
+
+const DeleteButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  padding: 4px;
+  
+  ${MessageContent}:hover & {
+    opacity: 1;
+  }
+`;
+
+const MessagesArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  background: var(--bg-primary);
+`;
+
+const PrivateChatIndicator = styled.div`
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-left: 0.5rem;
+`;
+
+const CloseButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+`;
+
+const HamburgerButton = styled.button`
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  
+  @media (max-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+`;
+
 export default Chat;
