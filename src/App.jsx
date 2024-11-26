@@ -20,17 +20,16 @@ function App() {
   });
 
   useEffect(() => {
-    // Don't clear auth on mount anymore
     const storedAuth = localStorage.getItem('chatAuth');
     if (storedAuth) {
       const { username: storedUsername, password } = JSON.parse(storedAuth);
       setUsername(storedUsername);
+      setIsAuthenticated(true);
       socket.emit('auth', { username: storedUsername, password });
     }
 
     socket.on("auth-success", ({ username }) => {
       setIsAuthenticated(true);
-      // Save auth data on successful login
       const auth = localStorage.getItem('chatAuth');
       if (!auth) {
         const tempAuth = JSON.parse(sessionStorage.getItem('tempAuth') || '{}');

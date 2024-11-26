@@ -63,6 +63,18 @@ function Chat({ socket, username, onLogout }) {
       }
     });
 
+    socket.on("receive-message", (message) => {
+      setMessages(prev => [...prev, message]);
+    });
+
+    socket.on("receive-file", (fileMessage) => {
+      setMessages(prev => [...prev, fileMessage]);
+    });
+
+    socket.on("message-history", (history) => {
+      setMessages(history);
+    });
+
     return () => {
       socket.off("users-update");
       socket.off("chat-message");
@@ -72,6 +84,9 @@ function Chat({ socket, username, onLogout }) {
       socket.off("password-change-failed");
       socket.off("message-deleted");
       socket.off("profile-pic-updated");
+      socket.off("receive-message");
+      socket.off("receive-file");
+      socket.off("message-history");
     };
   }, [socket, username]);
 
@@ -99,8 +114,8 @@ function Chat({ socket, username, onLogout }) {
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5000000) { // 5MB limit
-        alert("File size too large. Please choose an image under 5MB.");
+      if (file.size > 50000000) { // 50MB limit
+        alert("File size too large. Please choose an image under 50MB.");
         return;
       }
 
@@ -113,6 +128,26 @@ function Chat({ socket, username, onLogout }) {
         });
         setProfilePic(imageData);
         localStorage.setItem(`profilePic_${username}`, imageData);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 50000000) { // 50MB limit
+        alert("File size too large. Please choose a file under 50MB.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        socket.emit("send-file", {
+          name: file.name,
+          type: file.type,
+          data: reader.result
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -209,6 +244,15 @@ function Chat({ socket, username, onLogout }) {
               onChange={(e) => setMessage(e.target.value)}
               placeholder={`Message ${selectedUser || 'everyone'}...`}
             />
+            <AttachButton onClick={() => fileInputRef.current.click()}>
+              <IoAttach />
+            </AttachButton>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+            />
             <SendButton type="submit">
               <IoSend />
             </SendButton>
@@ -253,11 +297,17 @@ const Header = styled.header`
 `;
 
 const ChatLayout = styled.div`
-  display: flex;
-  height: calc(100vh - 70px);
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  height: calc(100vh - 80px);
+  max-width: 1400px;
+  margin: 0 auto;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  overflow: hidden;
   
   @media (max-width: 768px) {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -404,6 +454,15 @@ const MessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 3px;
+  }
 `;
 
 const MessageBubble = styled.div`
@@ -570,6 +629,7 @@ const MessagesArea = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+  max-height: calc(100vh - 160px);
 `;
 
 const MessageInputContainer = styled.div`
