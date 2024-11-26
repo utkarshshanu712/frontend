@@ -82,6 +82,11 @@ function Chat({ socket, username, onLogout }) {
       setMessages(prev => [...prev, fileMessage]);
     });
 
+    // Remove duplicate message-history listener
+    socket.on("message-history", (history) => {
+      setMessages(history);
+    });
+
     return () => {
       socket.off("users-update");
       socket.off("chat-message");
@@ -227,90 +232,439 @@ function Chat({ socket, username, onLogout }) {
 
         <MessagesArea>
           <MessagesContainer>
-            {selectedUser ? (
-              messages.filter(msg => msg.receiver === selectedUser || msg.sender === selectedUser)
-                      .map((msg, index) => (
-                        <MessageBubble
-                          key={index}
-                          isOwn={msg.sender === username || msg.username === username}
-                          isPrivate={msg.isPrivate}
-                        >
-                          {deletedMessages.has(msg._id) ? (
-                            <DeletedMessage>Message deleted</DeletedMessage>
-                          ) : (
-                            <MessageContent>
-                              <SenderName>{msg.sender || msg.username}</SenderName>
-                              <MessageText>{msg.message}</MessageText>
-                              <TimeStamp>
-                                {new Date(msg.timestamp).toLocaleTimeString()}
-                              </TimeStamp>
-                              {(msg.sender === username || msg.username === username) && (
-                                <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
-                                  <IoClose />
-                                </DeleteButton>
-                              )}
-                            </MessageContent>
-                          )}
-                        </MessageBubble>
-                      ))
-            ) : (
-              messages.map((msg, index) => (
-                <MessageBubble
-                  key={index}
-                  isOwn={msg.sender === username || msg.username === username}
-                  isPrivate={msg.isPrivate}
-                >
-                  {deletedMessages.has(msg._id) ? (
-                    <DeletedMessage>Message deleted</DeletedMessage>
-                  ) : (
-                    <MessageContent>
-                      <SenderName>{msg.sender || msg.username}</SenderName>
-                      <MessageText>{msg.message}</MessageText>
-                      <TimeStamp>
-                        {new Date(msg.timestamp).toLocaleTimeString()}
-                      </TimeStamp>
-                      {(msg.sender === username || msg.username === username) && (
-                        <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
-                          <IoClose />
-                        </DeleteButton>
-                      )}
-                    </MessageContent>
-                  )}
-                </MessageBubble>
-              ))
-            )}
+            {messages.map((msg, index) => (
+              <MessageBubble
+                key={index}
+                isOwn={msg.sender === username || msg.username === username}
+                isPrivate={msg.isPrivate}
+              >
+                {deletedMessages.has(msg._id) ? (
+                  <DeletedMessage>Message deleted</DeletedMessage>
+                ) : (
+                  <MessageContent>
+                    <SenderName>{msg.sender || msg.username}</SenderName>
+                    <MessageText>{msg.message}</MessageText>
+                    <TimeStamp>
+                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    </TimeStamp>
+                    {(msg.sender === username || msg.username === username) && (
+                      <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
+                        <IoClose />
+                      </DeleteButton>
+                    )}
+                  </MessageContent>
+                )}
+              </MessageBubble>
+            ))}
             <div ref={messagesEndRef} />
           </MessagesContainer>
-        </MessagesArea>
 
-        <InputArea>
-          <TextArea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="Type a message..."
-          />
-          <SendButton onClick={sendMessage}>
-            <IoSend />
-          </SendButton>
-          <AttachButton>
-            <label>
+          <MessageForm onSubmit={sendMessage}>
+            <MessageInput
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={`Message ${selectedUser || 'everyone'}...`}
+            />
+            <AttachButton onClick={() => fileInputRef.current.click()}>
               <IoAttach />
-              <input type="file" onChange={handleFileUpload} style={{ display: "none" }} />
-            </label>
-          </AttachButton>
-        </InputArea>
+            </AttachButton>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+            />
+            <SendButton type="submit">
+              <IoSend />
+            </SendButton>
+          </MessageForm>
+        </MessagesArea>
       </ChatLayout>
 
       {showPasswordChange && (
         <PasswordChangeModal
           onClose={() => setShowPasswordChange(false)}
-          username={username}
-          socket={socket}
+          onSubmit={(oldPassword, newPassword) => {
+            socket.emit("change-password", {
+              username,
+              oldPassword,
+              newPassword
+            });
+          }}
         />
       )}
     </ChatContainer>
   );
 }
+
+const ChatContainer = styled.div`
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: #111B21;
+  margin: 0;
+  padding: 0;
+`;
+
+const Header = styled.header`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #202C33;
+  border-bottom: 1px solid #111B21;
+  position: relative;
+  color: #ffffff;
+`;
+
+const ChatLayout = styled.div`
+  display: grid;
+  grid-template-columns: ${props => props.isSidebarOpen ? '300px 1fr' : '0 1fr'};
+  flex: 1;
+  overflow: hidden;
+  transition: grid-template-columns 0.3s ease;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    position: relative;
+  }
+`;
+
+const Sidebar = styled.aside`
+  background: #202C33;
+  border-right: 1px solid #111B21;
+  overflow-y: auto;
+  height: 100%;
+  transition: transform 0.3s ease;
+  color: #ffffff;
+  
+  @media (max-width: 768px) {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    transform: translateX(${props => props.isOpen ? '0' : '-100%'});
+    z-index: 10;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+  }
+`;
+
+const UserInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: #ffffff;
+`;
+
+const ProfilePicContainer = styled.div`
+  position: relative;
+  width: 40px;
+  height: 40px;
+`;
+
+const ProfilePic = styled.img`
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+`;
+
+const DefaultProfilePic = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #111B21;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const CameraOverlay = styled.div`
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: #111B21;
+  color: #ffffff;
+  border-radius: 50%;
+  padding: 5px;
+  cursor: pointer;
+  
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const Username = styled.h2`
+  font-size: 1.5rem;
+  color: #ffffff;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0.5rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+`;
+
+const Button = styled.button`
+  background: #111B21;
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const UsersList = styled.div`
+  background: #202C33;
+  border-right: 1px solid #111B21;
+  overflow-y: auto;
+  padding: 1rem;
+
+  @media (max-width: 768px) {
+    border-right: none;
+    border-bottom: 1px solid #111B21;
+    max-height: 150px;
+  }
+`;
+
+const UserItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  background: ${props => props.isSelected ? '#111B21' : 'transparent'};
+  color: #ffffff;
+
+  &:hover {
+    background: #111B21;
+  }
+`;
+
+const UserAvatar = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #111B21;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.5rem;
+`;
+
+const MessagesContainer = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #404040;
+    border-radius: 3px;
+  }
+`;
+
+const MessageBubble = styled.div`
+  max-width: 65%;
+  margin: 0.5rem;
+  padding: 0.8rem;
+  border-radius: 7.5px;
+  position: relative;
+  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.3);
+  background: ${props => props.isOwn ? "#202C33" : "#111B21"};
+  align-self: ${props => props.isOwn ? "flex-end" : "flex-start"};
+  color: #ffffff;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    ${props => props.isOwn ? "right: -8px" : "left: -8px"};
+    width: 0;
+    height: 0;
+    border-top: 8px solid ${props => props.isOwn ? "#202C33" : "#111B21"};
+    border-${props => props.isOwn ? "left" : "right"}: 8px solid transparent;
+  }
+
+  @media (max-width: 768px) {
+    max-width: 85%;
+  }
+`;
+
+const MessageContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+`;
+
+const SenderName = styled.div`
+  font-size: 0.8rem;
+  color: #a0a0a0;
+  margin-bottom: 0.2rem;
+`;
+
+const MessageText = styled.div`
+  word-break: break-word;
+  color: inherit;
+`;
+
+const TimeStamp = styled.div`
+  font-size: 0.7rem;
+  color: #a0a0a0;
+  text-align: right;
+  margin-top: 0.2rem;
+`;
+
+const MessageForm = styled.form`
+  display: flex;
+  padding: 1rem;
+  background: #202C33;
+  gap: 0.8rem;
+  border-top: 1px solid #111B21;
+  position: sticky;
+  bottom: 0;
+`;
+
+const MessageInput = styled.textarea`
+  flex: 1;
+  padding: 0.8rem;
+  border: 1px solid #111B21;
+  border-radius: 20px;
+  background: #111B21;
+  color: #ffffff;
+  outline: none;
+  resize: none;
+  min-height: 40px;
+  max-height: 100px;
+  overflow-y: auto;
+  word-break: break-word;
+  
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #111B21;
+    border-radius: 2px;
+  }
+  
+  &::placeholder {
+    color: #a0a0a0;
+  }
+  
+  &:focus {
+    border-color: #202C33;
+  }
+`;
+
+const SendButton = styled.button`
+  background: #111B21;
+  color: #ffffff;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:hover {
+    background: #202C33;
+  }
+`;
+
+const AttachButton = styled.button`
+  background: transparent;
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #202C33;
+  }
+`;
+
+const DeletedMessage = styled.div`
+  font-style: italic;
+  color: #a0a0a0;
+  font-size: 0.9rem;
+`;
+
+const DeleteButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  padding: 4px;
+  color: #a0a0a0;
+  
+  ${MessageContent}:hover & {
+    opacity: 1;
+  }
+`;
+
+const MessagesArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: #111B21;
+`;
+
+const PrivateChatIndicator = styled.div`
+  font-size: 0.8rem;
+  color: #ffffff;
+  margin-left: 0.5rem;
+`;
+
+const CloseButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #ffffff;
+`;
+
+const HamburgerButton = styled.button`
+  display: none;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  
+  @media (max-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+`;
 
 export default Chat;
