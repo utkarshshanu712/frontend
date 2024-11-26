@@ -138,13 +138,6 @@ const LoginForm = styled.form`
     }
   }
 `;
-body {
-  background-image: url('https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDF8fGJhY2tncm91bmQlMjBpbWFnZXxlbnwwfHx8fDE2MzY5MjY0MjM&ixlib=rb-1.2.1&q=80&w=1080');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;  /* Makes the background fixed as you scroll */
-}
-
 
 const ErrorMessage = styled.p`
   color: var(--error-color);
