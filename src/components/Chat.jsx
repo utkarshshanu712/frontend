@@ -303,7 +303,7 @@ const ChatContainer = styled.div`
   width: 100vw;
   display: flex;
   flex-direction: column;
-  background: #e5ddd5;
+  background: #1a1a1a;
   margin: 0;
   padding: 0;
 `;
@@ -313,8 +313,8 @@ const Header = styled.header`
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #075e54;
-  border-bottom: 1px solid #128c7e;
+  background: #2c2c2c;
+  border-bottom: 1px solid #404040;
   position: relative;
   color: #ffffff;
 `;
@@ -333,11 +333,12 @@ const ChatLayout = styled.div`
 `;
 
 const Sidebar = styled.aside`
-  background: #f0f2f5;
-  border-right: 1px solid #e0e0e0;
+  background: #2c2c2c;
+  border-right: 1px solid #404040;
   overflow-y: auto;
   height: 100%;
   transition: transform 0.3s ease;
+  color: #ffffff;
   
   @media (max-width: 768px) {
     position: absolute;
@@ -347,7 +348,7 @@ const Sidebar = styled.aside`
     width: 280px;
     transform: translateX(${props => props.isOpen ? '0' : '-100%'});
     z-index: 10;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
   }
 `;
 
@@ -375,7 +376,7 @@ const DefaultProfilePic = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #128c7e;
+  background: #404040;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -386,7 +387,7 @@ const CameraOverlay = styled.div`
   position: absolute;
   bottom: -5px;
   right: -5px;
-  background: #128c7e;
+  background: #404040;
   color: #ffffff;
   border-radius: 50%;
   padding: 5px;
@@ -412,7 +413,7 @@ const ButtonGroup = styled.div`
 `;
 
 const Button = styled.button`
-  background: #128c7e;
+  background: #404040;
   color: #ffffff;
   border: none;
   padding: 0.5rem 1rem;
@@ -425,14 +426,14 @@ const Button = styled.button`
 `;
 
 const UsersList = styled.div`
-  background: #f0f2f5;
-  border-right: 1px solid #e0e0e0;
+  background: #2c2c2c;
+  border-right: 1px solid #404040;
   overflow-y: auto;
   padding: 1rem;
 
   @media (max-width: 768px) {
     border-right: none;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid #404040;
     max-height: 150px;
   }
 `;
@@ -444,11 +445,11 @@ const UserItem = styled.div`
   padding: 0.8rem;
   border-radius: 8px;
   cursor: pointer;
-  background: ${props => props.isSelected ? '#e0e0e0' : 'transparent'};
-  color: #333333;
+  background: ${props => props.isSelected ? '#404040' : 'transparent'};
+  color: #ffffff;
 
   &:hover {
-    background: #e0e0e0;
+    background: #404040;
   }
 `;
 
@@ -456,7 +457,7 @@ const UserAvatar = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #128c7e;
+  background: #404040;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -477,7 +478,7 @@ const MessagesContainer = styled.div`
   }
   
   &::-webkit-scrollbar-thumb {
-    background: #128c7e;
+    background: #404040;
     border-radius: 3px;
   }
 `;
@@ -488,9 +489,10 @@ const MessageBubble = styled.div`
   padding: 0.8rem;
   border-radius: 7.5px;
   position: relative;
-  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
-  background: ${props => props.isOwn ? "#dcf8c6" : "#ffffff"};
+  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.3);
+  background: ${props => props.isOwn ? "#404040" : "#2c2c2c"};
   align-self: ${props => props.isOwn ? "flex-end" : "flex-start"};
+  color: #ffffff;
 
   &::before {
     content: '';
@@ -499,7 +501,7 @@ const MessageBubble = styled.div`
     ${props => props.isOwn ? "right: -8px" : "left: -8px"};
     width: 0;
     height: 0;
-    border-top: 8px solid ${props => props.isOwn ? "#dcf8c6" : "#ffffff"};
+    border-top: 8px solid ${props => props.isOwn ? "#404040" : "#2c2c2c"};
     border-${props => props.isOwn ? "left" : "right"}: 8px solid transparent;
   }
 
@@ -511,23 +513,23 @@ const MessageBubble = styled.div`
 const MessageContent = styled.div`
   display: flex;
   flex-direction: column;
-  color: #333333;
+  color: #ffffff;
 `;
 
 const SenderName = styled.div`
   font-size: 0.8rem;
-  color: #128c7e;
+  color: #a0a0a0;
   margin-bottom: 0.2rem;
 `;
 
 const MessageText = styled.div`
   word-break: break-word;
-  color: #333333;
+  color: #ffffff;
 `;
 
 const TimeStamp = styled.div`
   font-size: 0.7rem;
-  color: #666666;
+  color: #a0a0a0;
   text-align: right;
   margin-top: 0.2rem;
 `;
@@ -535,9 +537,9 @@ const TimeStamp = styled.div`
 const MessageForm = styled.form`
   display: flex;
   padding: 1rem;
-  background: #f0f2f5;
+  background: #2c2c2c;
   gap: 0.8rem;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #404040;
   position: sticky;
   bottom: 0;
 `;
@@ -545,10 +547,10 @@ const MessageForm = styled.form`
 const MessageInput = styled.textarea`
   flex: 1;
   padding: 0.8rem;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #404040;
   border-radius: 20px;
-  background: #ffffff;
-  color: #333333;
+  background: #1a1a1a;
+  color: #ffffff;
   outline: none;
   resize: none;
   min-height: 40px;
@@ -561,21 +563,21 @@ const MessageInput = styled.textarea`
   }
   
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
+    background: #404040;
     border-radius: 2px;
   }
   
   &::placeholder {
-    color: #666666;
+    color: #a0a0a0;
   }
   
   &:focus {
-    border-color: #128c7e;
+    border-color: #505050;
   }
 `;
 
 const SendButton = styled.button`
-  background: #25d366;
+  background: #404040;
   color: #ffffff;
   border: none;
   border-radius: 50%;
@@ -587,13 +589,13 @@ const SendButton = styled.button`
   cursor: pointer;
 
   &:hover {
-    background: #128c7e;
+    background: #505050;
   }
 `;
 
 const AttachButton = styled.button`
   background: transparent;
-  color: #25d366;
+  color: #ffffff;
   border: none;
   padding: 0.5rem;
   cursor: pointer;
@@ -603,13 +605,13 @@ const AttachButton = styled.button`
   transition: color 0.2s;
 
   &:hover {
-    color: #128c7e;
+    color: #a0a0a0;
   }
 `;
 
 const DeletedMessage = styled.div`
   font-style: italic;
-  color: #666666;
+  color: #a0a0a0;
   font-size: 0.9rem;
 `;
 
@@ -620,7 +622,7 @@ const DeleteButton = styled.button`
   opacity: 0;
   transition: opacity 0.2s;
   padding: 4px;
-  color: #666666;
+  color: #a0a0a0;
   
   ${MessageContent}:hover & {
     opacity: 1;
@@ -632,7 +634,7 @@ const MessagesArea = styled.div`
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: #e5ddd5;
+  background: #1a1a1a;
 `;
 
 const PrivateChatIndicator = styled.div`
