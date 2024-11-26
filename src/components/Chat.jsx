@@ -303,7 +303,7 @@ const ChatContainer = styled.div`
   width: 100vw;
   display: flex;
   flex-direction: column;
-  background: #1a1a1a;
+  background: #111B21;
   margin: 0;
   padding: 0;
 `;
@@ -313,8 +313,8 @@ const Header = styled.header`
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #075E54;
-  border-bottom: 1px solid #128C7E;
+  background: #202C33;
+  border-bottom: 1px solid #111B21;
   position: relative;
   color: #ffffff;
 `;
@@ -333,8 +333,8 @@ const ChatLayout = styled.div`
 `;
 
 const Sidebar = styled.aside`
-  background: #075E54;
-  border-right: 1px solid #128C7E;
+  background: #202C33;
+  border-right: 1px solid #111B21;
   overflow-y: auto;
   height: 100%;
   transition: transform 0.3s ease;
@@ -376,7 +376,7 @@ const DefaultProfilePic = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #128C7E;
+  background: #111B21;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -387,7 +387,7 @@ const CameraOverlay = styled.div`
   position: absolute;
   bottom: -5px;
   right: -5px;
-  background: #128C7E;
+  background: #111B21;
   color: #ffffff;
   border-radius: 50%;
   padding: 5px;
@@ -413,7 +413,7 @@ const ButtonGroup = styled.div`
 `;
 
 const Button = styled.button`
-  background: #128C7E;
+  background: #111B21;
   color: #ffffff;
   border: none;
   padding: 0.5rem 1rem;
@@ -426,14 +426,14 @@ const Button = styled.button`
 `;
 
 const UsersList = styled.div`
-  background: #075E54;
-  border-right: 1px solid #128C7E;
+  background: #202C33;
+  border-right: 1px solid #111B21;
   overflow-y: auto;
   padding: 1rem;
 
   @media (max-width: 768px) {
     border-right: none;
-    border-bottom: 1px solid #128C7E;
+    border-bottom: 1px solid #111B21;
     max-height: 150px;
   }
 `;
@@ -445,11 +445,11 @@ const UserItem = styled.div`
   padding: 0.8rem;
   border-radius: 8px;
   cursor: pointer;
-  background: ${props => props.isSelected ? '#128C7E' : 'transparent'};
+  background: ${props => props.isSelected ? '#111B21' : 'transparent'};
   color: #ffffff;
 
   &:hover {
-    background: #128C7E;
+    background: #111B21;
   }
 `;
 
@@ -457,7 +457,7 @@ const UserAvatar = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #128C7E;
+  background: #111B21;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -490,9 +490,9 @@ const MessageBubble = styled.div`
   border-radius: 7.5px;
   position: relative;
   box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.3);
-  background: ${props => props.isOwn ? "#25D366" : "#2c2c2c"};
+  background: ${props => props.isOwn ? "#202C33" : "#111B21"};
   align-self: ${props => props.isOwn ? "flex-end" : "flex-start"};
-  color: ${props => props.isOwn ? "#000000" : "#ffffff"};
+  color: #ffffff;
 
   &::before {
     content: '';
@@ -501,7 +501,7 @@ const MessageBubble = styled.div`
     ${props => props.isOwn ? "right: -8px" : "left: -8px"};
     width: 0;
     height: 0;
-    border-top: 8px solid ${props => props.isOwn ? "#25D366" : "#2c2c2c"};
+    border-top: 8px solid ${props => props.isOwn ? "#202C33" : "#111B21"};
     border-${props => props.isOwn ? "left" : "right"}: 8px solid transparent;
   }
 
@@ -529,7 +529,7 @@ const MessageText = styled.div`
 
 const TimeStamp = styled.div`
   font-size: 0.7rem;
-  color: ${props => props.isOwn ? "rgba(0,0,0,0.6)" : "#a0a0a0"};
+  color: #a0a0a0;
   text-align: right;
   margin-top: 0.2rem;
 `;
@@ -537,9 +537,9 @@ const TimeStamp = styled.div`
 const MessageForm = styled.form`
   display: flex;
   padding: 1rem;
-  background: #075E54;
+  background: #202C33;
   gap: 0.8rem;
-  border-top: 1px solid #128C7E;
+  border-top: 1px solid #111B21;
   position: sticky;
   bottom: 0;
 `;
@@ -547,9 +547,9 @@ const MessageForm = styled.form`
 const MessageInput = styled.textarea`
   flex: 1;
   padding: 0.8rem;
-  border: 1px solid #128C7E;
+  border: 1px solid #111B21;
   border-radius: 20px;
-  background: #1a1a1a;
+  background: #111B21;
   color: #ffffff;
   outline: none;
   resize: none;
@@ -563,7 +563,7 @@ const MessageInput = styled.textarea`
   }
   
   &::-webkit-scrollbar-thumb {
-    background: #128C7E;
+    background: #111B21;
     border-radius: 2px;
   }
   
@@ -572,12 +572,12 @@ const MessageInput = styled.textarea`
   }
   
   &:focus {
-    border-color: #25D366;
+    border-color: #202C33;
   }
 `;
 
 const SendButton = styled.button`
-  background: #128C7E;
+  background: #111B21;
   color: #ffffff;
   border: none;
   border-radius: 50%;
@@ -589,7 +589,7 @@ const SendButton = styled.button`
   cursor: pointer;
 
   &:hover {
-    background: #25D366;
+    background: #202C33;
   }
 `;
 
@@ -605,7 +605,7 @@ const AttachButton = styled.button`
   transition: color 0.2s;
 
   &:hover {
-    color: #25D366;
+    color: #202C33;
   }
 `;
 
@@ -634,7 +634,7 @@ const MessagesArea = styled.div`
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: #1a1a1a;
+  background: #111B21;
 `;
 
 const PrivateChatIndicator = styled.div`
