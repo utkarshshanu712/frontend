@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
-import { IoSend, IoAttach, IoCamera, IoClose } from "react-icons/io5";
+import { IoSend, IoAttach, IoCamera, IoClose, IoMenu } from "react-icons/io5";
 import PasswordChangeModal from "./PasswordChangeModal";
 
 function Chat({ socket, username, onLogout }) {
@@ -13,6 +13,7 @@ function Chat({ socket, username, onLogout }) {
   const [deletedMessages, setDeletedMessages] = useState(new Set());
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -153,10 +154,20 @@ function Chat({ socket, username, onLogout }) {
     }
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(e);
+    }
+  };
+
   return (
     <ChatContainer>
       <Header>
         <UserInfo>
+          <HamburgerButton onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+            <IoMenu />
+          </HamburgerButton>
           <ProfilePicContainer>
             {profilePic ? (
               <ProfilePic src={profilePic} alt={username} />
@@ -192,8 +203,8 @@ function Chat({ socket, username, onLogout }) {
         </ButtonGroup>
       </Header>
 
-      <ChatLayout>
-        <Sidebar>
+      <ChatLayout isSidebarOpen={isSidebarOpen}>
+        <Sidebar isOpen={isSidebarOpen}>
           <h3>Online Users ({users.length})</h3>
           <UsersList>
             {users.map((user) => (
@@ -242,6 +253,7 @@ function Chat({ socket, username, onLogout }) {
             <MessageInput
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
               placeholder={`Message ${selectedUser || 'everyone'}...`}
             />
             <AttachButton onClick={() => fileInputRef.current.click()}>
@@ -278,12 +290,13 @@ function Chat({ socket, username, onLogout }) {
 
 const ChatContainer = styled.div`
   height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 `;
 
 const Header = styled.header`
@@ -298,30 +311,30 @@ const Header = styled.header`
 
 const ChatLayout = styled.div`
   display: grid;
-  grid-template-columns: 300px 1fr;
-  height: calc(100vh - 80px);
-  max-width: 1400px;
-  margin: 0 auto;
-  background: var(--bg-secondary);
-  border-radius: 10px;
-  overflow: hidden;
+  grid-template-columns: ${props => props.isSidebarOpen ? '300px 1fr' : '0 1fr'};
+  height: calc(100vh - 70px);
+  transition: grid-template-columns 0.3s ease;
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    position: relative;
   }
 `;
 
 const Sidebar = styled.aside`
-  width: 280px;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
-  padding: 1rem;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
   
   @media (max-width: 768px) {
-    width: 100%;
-    height: 100px;
-    border-right: none;
-    border-bottom: 1px solid var(--border-color);
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    transform: translateX(${props => props.isOpen ? '0' : '-100%'});
+    z-index: 10;
   }
 `;
 
@@ -507,9 +520,11 @@ const MessageForm = styled.form`
   background: var(--bg-secondary);
   gap: 0.8rem;
   border-top: 1px solid var(--border-color);
+  position: sticky;
+  bottom: 0;
 `;
 
-const MessageInput = styled.input`
+const MessageInput = styled.textarea`
   flex: 1;
   padding: 0.8rem;
   border: 1px solid var(--border-color);
@@ -517,7 +532,10 @@ const MessageInput = styled.input`
   background: var(--bg-primary);
   color: var(--text-primary);
   outline: none;
-
+  resize: none;
+  min-height: 40px;
+  max-height: 100px;
+  
   &::placeholder {
     color: var(--text-secondary);
   }
@@ -629,7 +647,8 @@ const MessagesArea = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-height: calc(100vh - 160px);
+  max-height: 100%;
+  background: var(--bg-primary);
 `;
 
 const MessageInputContainer = styled.div`
@@ -682,6 +701,22 @@ const ProfilePicButton = styled.button`
   
   &:hover {
     opacity: 0.8;
+  }
+`;
+
+const HamburgerButton = styled.button`
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  
+  @media (max-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 `;
 
