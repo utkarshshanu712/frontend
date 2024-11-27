@@ -12,7 +12,10 @@ const socket = io(import.meta.env.VITE_API_URL, {
 });
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const auth = localStorage.getItem('chatAuth');
+    return !!auth;
+  });
   const [isOffline, setIsOffline] = useState(false);
   const [username, setUsername] = useState(() => {
     const auth = localStorage.getItem('chatAuth');
@@ -22,16 +25,13 @@ function App() {
   useEffect(() => {
     const storedAuth = localStorage.getItem('chatAuth');
     if (storedAuth) {
-      const { username: storedUsername, password } = JSON.parse(storedAuth);
-      setUsername(storedUsername);
-      setIsAuthenticated(true);
-      socket.emit('auth', { username: storedUsername, password });
+      const { username, password } = JSON.parse(storedAuth);
+      socket.emit('auth', { username, password });
     }
 
     socket.on("auth-success", ({ username }) => {
       setIsAuthenticated(true);
-      const auth = localStorage.getItem('chatAuth');
-      if (!auth) {
+      if (!localStorage.getItem('chatAuth')) {
         const tempAuth = JSON.parse(sessionStorage.getItem('tempAuth') || '{}');
         if (tempAuth.username && tempAuth.password) {
           localStorage.setItem('chatAuth', JSON.stringify(tempAuth));
@@ -42,11 +42,11 @@ function App() {
     socket.on("auth-failed", () => {
       setIsAuthenticated(false);
       localStorage.removeItem('chatAuth');
-      alert("Invalid username or password!");
+      sessionStorage.removeItem('tempAuth');
+      alert("Authentication failed. Please login again.");
     });
 
     socket.on("connect", () => {
-      setIsOffline(false);
       const auth = localStorage.getItem('chatAuth');
       if (auth) {
         const { username, password } = JSON.parse(auth);
@@ -54,7 +54,7 @@ function App() {
       }
     });
 
-    socket.on("connect_error", () => {
+    socket.on("disconnect", () => {
       setIsOffline(true);
     });
 
@@ -62,7 +62,7 @@ function App() {
       socket.off("auth-success");
       socket.off("auth-failed");
       socket.off("connect");
-      socket.off("connect_error");
+      socket.off("disconnect");
     };
   }, []);
 
@@ -72,7 +72,7 @@ function App() {
     setIsAuthenticated(false);
     setUsername("");
     socket.disconnect();
-    window.location.reload();
+    socket.connect();
   };
 
   return (
