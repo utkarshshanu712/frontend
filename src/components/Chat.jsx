@@ -5,6 +5,8 @@ import PasswordChangeModal from "./PasswordChangeModal";
 
 function Chat({ socket, username, onLogout }) {
   const [users, setUsers] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [privateChatUsers, setPrivateChatUsers] = useState([]);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -39,8 +41,16 @@ function Chat({ socket, username, onLogout }) {
       setProfilePic(savedProfilePic);
     }
 
+    // Fetch all users
+    fetch(`${import.meta.env.VITE_API_URL}/users`)
+      .then(res => res.json())
+      .then(allUsers => {
+        setUsers(allUsers.map(user => user.username).filter(user => user !== username));
+      });
+
+    // Handle online users updates
     socket.on("users-update", (updatedUsers) => {
-      setUsers(updatedUsers.filter(user => user !== username));
+      setOnlineUsers(updatedUsers.filter(user => user !== username));
     });
 
     socket.on("chat-message", (message) => {
@@ -98,6 +108,12 @@ function Chat({ socket, username, onLogout }) {
     socket.on("message-history", (history) => {
       setMessages(history);
     });
+
+    // Load private chat users from localStorage
+    const savedPrivateChats = localStorage.getItem(`privatechats_${username}`);
+    if (savedPrivateChats) {
+      setPrivateChatUsers(JSON.parse(savedPrivateChats));
+    }
 
     return () => {
       socket.off("users-update");
@@ -231,26 +247,93 @@ function Chat({ socket, username, onLogout }) {
         </button>
       </SectionToggle>
 
-      {activeSection === 'private' ? (
-        users.map((user) => (
-          <UserItem 
-            key={user} 
-            isSelected={selectedUser === user}
-            onClick={() => setSelectedUser(user)}
-          >
-            <UserAvatar hasImage={false}>
-              {user[0].toUpperCase()}
-            </UserAvatar>
-            <div>
-              <UserName>{user}</UserName>
-              <LastMessage>
-                {/* Show last message if available */}
-                {chatHistory[createChatId(username, user)]?.[0]?.message || 'Click to start chatting'}
-              </LastMessage>
-            </div>
-          </UserItem>
-        ))
-      ) : (
+      {activeSection === 'private' && (
+        <>
+          <UserListSection>
+            <SectionTitle>Online Users</SectionTitle>
+            {onlineUsers.map((user) => (
+              <UserItem 
+                key={user} 
+                isSelected={selectedUser === user}
+                onClick={() => {
+                  setSelectedUser(user);
+                  if (!privateChatUsers.includes(user)) {
+                    const updatedChats = [...privateChatUsers, user];
+                    setPrivateChatUsers(updatedChats);
+                    localStorage.setItem(`privatechats_${username}`, JSON.stringify(updatedChats));
+                  }
+                }}
+              >
+                <UserAvatar hasImage={false} isOnline>
+                  {user[0].toUpperCase()}
+                </UserAvatar>
+                <div>
+                  <UserName>{user}</UserName>
+                  <LastMessage>
+                    {chatHistory[createChatId(username, user)]?.[0]?.message || 'Click to start chatting'}
+                  </LastMessage>
+                </div>
+              </UserItem>
+            ))}
+          </UserListSection>
+
+          <UserListSection>
+            <SectionTitle>Offline Users</SectionTitle>
+            {users
+              .filter(user => !onlineUsers.includes(user))
+              .map((user) => (
+                <UserItem 
+                  key={user} 
+                  isSelected={selectedUser === user}
+                  onClick={() => {
+                    setSelectedUser(user);
+                    if (!privateChatUsers.includes(user)) {
+                      const updatedChats = [...privateChatUsers, user];
+                      setPrivateChatUsers(updatedChats);
+                      localStorage.setItem(`privatechats_${username}`, JSON.stringify(updatedChats));
+                    }
+                  }}
+                >
+                  <UserAvatar hasImage={false}>
+                    {user[0].toUpperCase()}
+                  </UserAvatar>
+                  <div>
+                    <UserName>{user}</UserName>
+                    <LastMessage>Offline</LastMessage>
+                  </div>
+                </UserItem>
+              ))}
+          </UserListSection>
+
+          {privateChatUsers.length > 0 && (
+            <UserListSection>
+              <SectionTitle>Recent Chats</SectionTitle>
+              {privateChatUsers.map((user) => (
+                <UserItem 
+                  key={user} 
+                  isSelected={selectedUser === user}
+                  onClick={() => setSelectedUser(user)}
+                >
+                  <UserAvatar 
+                    hasImage={false}
+                    isOnline={onlineUsers.includes(user)}
+                  >
+                    {user[0].toUpperCase()}
+                  </UserAvatar>
+                  <div>
+                    <UserName>{user}</UserName>
+                    <LastMessage>
+                      {onlineUsers.includes(user) ? 'Online' : 'Offline'}
+                    </LastMessage>
+                  </div>
+                </UserItem>
+              ))}
+            </UserListSection>
+          )}
+        </>
+      )}
+      
+      {activeSection === 'group' && (
         <GroupList>
           <GroupItem onClick={() => setSelectedUser(null)}>
             <UserAvatar hasImage={false}>
@@ -261,7 +344,6 @@ function Chat({ socket, username, onLogout }) {
               <LastMessage>Public chat room</LastMessage>
             </div>
           </GroupItem>
-          {/* Add more group chats here */}
         </GroupList>
       )}
     </UserList>
@@ -535,24 +617,6 @@ const UserItem = styled.div`
 
   &:hover {
     background: var(--hover-color);
-  }
-`;
-
-const UserAvatar = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: ${({ hasImage }) => hasImage ? 'none' : 'var(--accent-color)'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 1rem;
-  overflow: hidden;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
   }
 `;
 
@@ -840,6 +904,49 @@ const SidebarHeader = styled.div`
   padding: 0.5rem;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-secondary);
+`;
+
+const UserListSection = styled.div`
+  margin-bottom: 1rem;
+`;
+
+const SectionTitle = styled.h3`
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+`;
+
+const UserAvatar = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: ${({ hasImage }) => hasImage ? 'none' : 'var(--accent-color)'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  overflow: hidden;
+  position: relative;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: ${({ isOnline }) => isOnline ? '#44b700' : '#666'};
+    border: 2px solid var(--bg-secondary);
+    display: ${({ hideStatus }) => hideStatus ? 'none' : 'block'};
+  }
 `;
 
 export default Chat;
