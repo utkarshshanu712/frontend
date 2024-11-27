@@ -14,6 +14,7 @@ function Chat({ socket, username, onLogout }) {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [chatHistory, setChatHistory] = useState({});
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -62,8 +63,18 @@ function Chat({ socket, username, onLogout }) {
       alert("Failed to change password. Please try again.");
     });
 
-    socket.on("message-deleted", ({ messageId, deletedBy }) => {
-      setDeletedMessages(prev => new Set([...prev, messageId]));
+    socket.on("message-deleted", ({ messageId }) => {
+      // Remove the message completely from the messages array
+      setMessages(prevMessages => 
+        prevMessages.filter(msg => msg._id !== messageId)
+      );
+      
+      // Clean up any references in deletedMessages set
+      setDeletedMessages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(messageId);
+        return newSet;
+      });
     });
 
     socket.on("profile-pic-updated", ({ success }) => {
@@ -104,22 +115,30 @@ function Chat({ socket, username, onLogout }) {
   const sendMessage = (e) => {
     e.preventDefault();
     if (message.trim()) {
-      if (selectedUser) {
-        socket.emit("private-message", {
-          receiver: selectedUser,
-          message: message.trim()
-        });
-      } else {
-        socket.emit("send-message", {
-          message: message.trim()
-        });
-      }
+      const messageData = {
+        message: message,
+        receiver: selectedUser
+      };
+      
+      socket.emit("send-message", messageData);
       setMessage("");
     }
   };
 
   const handleDeleteMessage = (messageId) => {
     socket.emit("delete-message", { messageId });
+    
+    // Remove message from local state immediately
+    setMessages(prevMessages => 
+      prevMessages.filter(msg => msg._id !== messageId)
+    );
+    
+    // Remove from deletedMessages set if it exists
+    setDeletedMessages(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(messageId);
+      return newSet;
+    });
   };
 
   const handleProfilePicChange = (e) => {
@@ -171,9 +190,33 @@ function Chat({ socket, username, onLogout }) {
     }
   };
 
+  useEffect(() => {
+    if (selectedUser) {
+      const chatId = [username, selectedUser].sort().join('_');
+      
+      // Load chat history if not already loaded
+      if (!chatHistory[chatId]) {
+        fetch(`${import.meta.env.VITE_API_URL}/api/messages/${chatId}`)
+          .then(res => res.json())
+          .then(messages => {
+            setChatHistory(prev => ({
+              ...prev,
+              [chatId]: messages
+            }));
+          })
+          .catch(console.error);
+      }
+    }
+  }, [selectedUser]);
+
+  const displayMessages = selectedUser
+    ? (chatHistory[[username, selectedUser].sort().join('_')] || [])
+    : messages.filter(msg => !msg.receiver);
+
   return (
     <ChatContainer>
       <Header>
+        <HeaderLogo src="/src/assets/trans1_480x480.png" alt="Friend Chat Logo" />
         <UserInfo>
           <HamburgerButton onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
             <IoMenu />
@@ -232,28 +275,24 @@ function Chat({ socket, username, onLogout }) {
 
         <MessagesArea>
           <MessagesContainer>
-            {messages.map((msg, index) => (
+            {displayMessages.map((msg, index) => (
               <MessageBubble
-                key={index}
+                key={msg._id || index}
                 isOwn={msg.sender === username || msg.username === username}
                 isPrivate={msg.isPrivate}
               >
-                {deletedMessages.has(msg._id) ? (
-                  <DeletedMessage>Message deleted</DeletedMessage>
-                ) : (
-                  <MessageContent>
-                    <SenderName>{msg.sender || msg.username}</SenderName>
-                    <MessageText>{msg.message}</MessageText>
-                    <TimeStamp>
-                      {new Date(msg.timestamp).toLocaleTimeString()}
-                    </TimeStamp>
-                    {(msg.sender === username || msg.username === username) && (
-                      <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
-                        <IoClose />
-                      </DeleteButton>
-                    )}
-                  </MessageContent>
-                )}
+                <MessageContent>
+                  <SenderName>{msg.sender || msg.username}</SenderName>
+                  <MessageText>{msg.message}</MessageText>
+                  <TimeStamp>
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  </TimeStamp>
+                  {(msg.sender === username || msg.username === username) && (
+                    <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
+                      <IoClose />
+                    </DeleteButton>
+                  )}
+                </MessageContent>
               </MessageBubble>
             ))}
             <div ref={messagesEndRef} />
@@ -311,13 +350,16 @@ const ChatContainer = styled.div`
 
 const Header = styled.header`
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #202C33;
-  border-bottom: 1px solid #111B21;
-  position: relative;
-  color: #ffffff;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  gap: 1rem;
+`;
+
+const HeaderLogo = styled.img`
+  width: 40px;
+  height: 40px;
 `;
 
 const ChatLayout = styled.div`

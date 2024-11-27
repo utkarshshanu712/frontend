@@ -57,7 +57,9 @@ function Login({ socket, setUsername }) {
 
   return (
     <LoginContainer>
+      <Logo src="/src/assets/trans1_480x480.png" alt="Friend Chat Logo" />
       <LoginForm onSubmit={handleSubmit}>
+        <Logo src="/src/assets/trans_480x480.png" alt="Friend Chat Logo" style={{ width: '80px', height: '80px' }} />
         <h2>Friend-Chat</h2>
         <select 
           value={selectedUser} 
@@ -86,34 +88,63 @@ function Login({ socket, setUsername }) {
 }
 
 const LoginContainer = styled.div`
-  background-image: url('https://images.unsplash.com/photo-1716186881947-e63e0f4cf4ae?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  width: 90%;
-  max-width: 400px;
-  margin: auto;
-  
-  h2 {
-    color: var(--accent-color);
-    margin-bottom: 1.5rem;
-    text-align: center;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+                url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2029&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    z-index: -1;
   }
+`;
+
+const Logo = styled.img`
+  width: 120px;
+  height: 120px;
+  margin-bottom: 2rem;
 `;
 
 const LoginForm = styled.form`
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 1rem;
+  background: rgba(17, 27, 33, 0.8);
+  backdrop-filter: blur(10px);
+  padding: 2.5rem;
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  width: 90%;
+  max-width: 400px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   
-  input {
+  h2 {
+    color: var(--accent-color);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 2rem;
+  }
+  
+  input, select {
     padding: 0.8rem;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    background: var(--bg-primary);
+    background: rgba(17, 27, 33, 0.6);
     color: var(--text-primary);
     font-size: 1rem;
     
@@ -124,6 +155,7 @@ const LoginForm = styled.form`
     &:focus {
       outline: none;
       border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px rgba(0, 168, 132, 0.2);
     }
   }
   
@@ -135,10 +167,15 @@ const LoginForm = styled.form`
     border-radius: 8px;
     font-size: 1rem;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: all 0.2s ease;
     
     &:hover {
-      opacity: 0.9;
+      background: #00c49a;
+      transform: translateY(-1px);
+    }
+    
+    &:active {
+      transform: translateY(0);
     }
   }
 `;
