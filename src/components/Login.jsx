@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import logoImage1 from '../assets/orig1_600x600-removebg-preview';
-import logoImage2 from '../assets/orig_600x600-removebg-preview';
+import logoImage1 from '../assets/orig_600x600-removebg-preview.png';
+import logoImage2 from '../assets/orig_600x600-removebg-preview.png';
 
 function Login({ socket, setUsername }) {
   const [users, setUsers] = useState([]);
