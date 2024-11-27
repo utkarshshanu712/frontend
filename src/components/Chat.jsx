@@ -312,7 +312,7 @@ function Chat({ socket, username, onLogout }) {
 
       <ChatLayout isSidebarOpen={isSidebarOpen}>
         <Sidebar isOpen={isSidebarOpen}>
-          <Header>
+          <SidebarHeader>
             <UserProfile>
               <UserAvatar hasImage={!!profilePic}>
                 {profilePic ? (
@@ -323,10 +323,7 @@ function Chat({ socket, username, onLogout }) {
               </UserAvatar>
               <span>{username}</span>
             </UserProfile>
-            <MenuButton onClick={() => setShowMenu(!showMenu)}>
-              <IoMenu />
-            </MenuButton>
-          </Header>
+          </SidebarHeader>
           {renderUserList()}
         </Sidebar>
 
@@ -810,5 +807,39 @@ const GroupList = styled.div`
 `;
 
 const GroupItem = styled(UserItem)``;
+
+const UserProfile = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  
+  span {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+`;
+
+const MenuButton = styled.button`
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    color: var(--text-primary);
+  }
+`;
+
+const SidebarHeader = styled.div`
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+`;
 
 export default Chat;
