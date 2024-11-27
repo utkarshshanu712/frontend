@@ -269,6 +269,12 @@ function Chat({ socket, username, onLogout }) {
       return;
     }
 
+    // Verify it's an image
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (event) => {
       const profilePicData = event.target.result;
@@ -321,7 +327,18 @@ function Chat({ socket, username, onLogout }) {
         size: file.size
       };
 
-      socket.emit('send-file', fileData);
+      const chatId = selectedUser ? createChatId(username, selectedUser) : 'broadcast';
+      const messageData = {
+        sender: username,
+        receiver: selectedUser,
+        message: `File: ${file.name}`,
+        isFile: true,
+        fileData: fileData,
+        chatId,
+        timestamp: new Date()
+      };
+
+      socket.emit('send-message', messageData);
     };
     reader.readAsDataURL(file);
   };
@@ -526,7 +543,28 @@ function Chat({ socket, username, onLogout }) {
                 {msg.sender !== username && (
                   <SenderName>{msg.sender}</SenderName>
                 )}
-                {msg.message}
+                {msg.isFile ? (
+                  <FileContent>
+                    {msg.fileData.type.startsWith('image/') ? (
+                      <img 
+                        src={msg.fileData.data} 
+                        alt={msg.fileData.name}
+                        style={{ maxWidth: '200px', maxHeight: '200px' }}
+                      />
+                    ) : (
+                      <a 
+                        href={msg.fileData.data}
+                        download={msg.fileData.name}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Download: {msg.fileData.name}
+                      </a>
+                    )}
+                  </FileContent>
+                ) : (
+                  msg.message
+                )}
                 <TimeStamp>
                   {new Date(msg.timestamp).toLocaleTimeString()}
                 </TimeStamp>
@@ -1030,6 +1068,10 @@ const UserAvatar = styled.div`
     border: 2px solid var(--bg-secondary);
     display: ${({ hideStatus }) => hideStatus ? 'none' : 'block'};
   }
+`;
+
+const FileContent = styled.div`
+  margin-bottom: 0.5rem;
 `;
 
 export default Chat;
