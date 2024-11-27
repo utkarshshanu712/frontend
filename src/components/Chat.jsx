@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
-import { IoSend, IoAttach, IoCamera, IoClose, IoMenu } from "react-icons/io5";
+import { IoSend, IoAttach, IoCamera, IoClose, IoMenu, IoPeople } from "react-icons/io5";
 import PasswordChangeModal from "./PasswordChangeModal";
 
 function Chat({ socket, username, onLogout }) {
@@ -15,6 +15,7 @@ function Chat({ socket, username, onLogout }) {
   const fileInputRef = useRef(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [chatHistory, setChatHistory] = useState({});
+  const [activeSection, setActiveSection] = useState('private'); // 'private' or 'group'
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -213,10 +214,63 @@ function Chat({ socket, username, onLogout }) {
     ? (chatHistory[[username, selectedUser].sort().join('_')] || [])
     : messages.filter(msg => !msg.receiver);
 
+  const renderUserList = () => (
+    <UserList>
+      <SectionToggle>
+        <button 
+          className={activeSection === 'private' ? 'active' : ''} 
+          onClick={() => setActiveSection('private')}
+        >
+          Private Chats
+        </button>
+        <button 
+          className={activeSection === 'group' ? 'active' : ''} 
+          onClick={() => setActiveSection('group')}
+        >
+          Group Chats
+        </button>
+      </SectionToggle>
+
+      {activeSection === 'private' ? (
+        users.map((user) => (
+          <UserItem 
+            key={user} 
+            isSelected={selectedUser === user}
+            onClick={() => setSelectedUser(user)}
+          >
+            <UserAvatar hasImage={false}>
+              {user[0].toUpperCase()}
+            </UserAvatar>
+            <div>
+              <UserName>{user}</UserName>
+              <LastMessage>
+                {/* Show last message if available */}
+                {chatHistory[createChatId(username, user)]?.[0]?.message || 'Click to start chatting'}
+              </LastMessage>
+            </div>
+          </UserItem>
+        ))
+      ) : (
+        <GroupList>
+          <GroupItem onClick={() => setSelectedUser(null)}>
+            <UserAvatar hasImage={false}>
+              <IoPeople />
+            </UserAvatar>
+            <div>
+              <UserName>General Chat</UserName>
+              <LastMessage>Public chat room</LastMessage>
+            </div>
+          </GroupItem>
+          {/* Add more group chats here */}
+        </GroupList>
+      )}
+    </UserList>
+  );
+
   return (
     <ChatContainer>
       <Header>
-        <HeaderLogo src="./assets/trans1_480x480.png" alt="Friend Chat Logo" />
+        <HeaderLogo src="/assets/trans1_480x480.png" alt="Friend Chat Logo" />
         <UserInfo>
           <HamburgerButton onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
             <IoMenu />
@@ -258,19 +312,22 @@ function Chat({ socket, username, onLogout }) {
 
       <ChatLayout isSidebarOpen={isSidebarOpen}>
         <Sidebar isOpen={isSidebarOpen}>
-          <h3>Online Users ({users.length})</h3>
-          <UsersList>
-            {users.map((user) => (
-              <UserItem
-                key={user}
-                isSelected={user === selectedUser}
-                onClick={() => setSelectedUser(user === selectedUser ? null : user)}
-              >
-                <UserAvatar>{user[0].toUpperCase()}</UserAvatar>
-                <span>{user}</span>
-              </UserItem>
-            ))}
-          </UsersList>
+          <Header>
+            <UserProfile>
+              <UserAvatar hasImage={!!profilePic}>
+                {profilePic ? (
+                  <img src={profilePic} alt={username} />
+                ) : (
+                  username[0].toUpperCase()
+                )}
+              </UserAvatar>
+              <span>{username}</span>
+            </UserProfile>
+            <MenuButton onClick={() => setShowMenu(!showMenu)}>
+              <IoMenu />
+            </MenuButton>
+          </Header>
+          {renderUserList()}
         </Sidebar>
 
         <MessagesArea>
@@ -375,23 +432,19 @@ const ChatLayout = styled.div`
   }
 `;
 
-const Sidebar = styled.aside`
-  background: #202C33;
-  border-right: 1px solid #111B21;
-  overflow-y: auto;
-  height: 100%;
+const Sidebar = styled.div`
+  width: 300px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
   transition: transform 0.3s ease;
-  color: #ffffff;
-  
+
   @media (max-width: 768px) {
     position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 280px;
-    transform: translateX(${props => props.isOpen ? '0' : '-100%'});
+    height: 100%;
+    transform: ${({ isOpen }) => isOpen ? 'translateX(0)' : 'translateX(-100%)'};
     z-index: 10;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
   }
 `;
 
@@ -468,31 +521,23 @@ const Button = styled.button`
   }
 `;
 
-const UsersList = styled.div`
-  background: #202C33;
-  border-right: 1px solid #111B21;
+const UserList = styled.div`
+  flex: 1;
   overflow-y: auto;
   padding: 1rem;
-
-  @media (max-width: 768px) {
-    border-right: none;
-    border-bottom: 1px solid #111B21;
-    max-height: 150px;
-  }
 `;
 
 const UserItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   padding: 0.8rem;
   border-radius: 8px;
   cursor: pointer;
-  background: ${props => props.isSelected ? '#111B21' : 'transparent'};
-  color: #ffffff;
+  margin-bottom: 0.5rem;
+  background: ${({ isSelected }) => isSelected ? 'var(--hover-color)' : 'transparent'};
 
   &:hover {
-    background: #111B21;
+    background: var(--hover-color);
   }
 `;
 
@@ -500,12 +545,18 @@ const UserAvatar = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #111B21;
-  color: #ffffff;
+  background: ${({ hasImage }) => hasImage ? 'none' : 'var(--accent-color)'};
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 0.5rem;
+  margin-right: 1rem;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 `;
 
 const MessagesContainer = styled.div`
@@ -716,5 +767,48 @@ const HamburgerButton = styled.button`
     justify-content: center;
   }
 `;
+
+const SectionToggle = styled.div`
+  display: flex;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  
+  button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.8rem;
+    cursor: pointer;
+    
+    &.active {
+      color: var(--accent-color);
+      border-bottom: 2px solid var(--accent-color);
+    }
+  }
+`;
+
+const UserName = styled.div`
+  color: var(--text-primary);
+  font-weight: 500;
+`;
+
+const LastMessage = styled.div`
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+`;
+
+const GroupList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const GroupItem = styled(UserItem)``;
 
 export default Chat;
