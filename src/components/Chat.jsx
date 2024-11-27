@@ -461,16 +461,15 @@ function Chat({ socket, username, onLogout }) {
                 {msg.sender !== username && (
                   <SenderName>{msg.sender}</SenderName>
                 )}
-                <MessageText>{msg.message}</MessageText>
+                {msg.message}
                 <TimeStamp>
                   {new Date(msg.timestamp).toLocaleTimeString()}
                 </TimeStamp>
                 {msg.sender === username && (
                   <DeleteButton
-                    className="delete-button"
                     onClick={() => handleDeleteMessage(msg._id)}
                   >
-                    <IoClose />
+                    <IoClose size={14} />
                   </DeleteButton>
                 )}
               </MessageBubble>
@@ -689,7 +688,7 @@ const MessageBubble = styled.div`
   background: ${props => props.isOwn ? 'var(--message-out)' : 'var(--message-in)'};
   align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
 
-  &:hover .delete-button {
+  &:hover ${DeleteButton} {
     opacity: 1;
     visibility: visible;
   }
@@ -824,12 +823,11 @@ const DeleteButton = styled.button`
   justify-content: center;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.2s ease;
-  padding: 0;
-  font-size: 16px;
+  transition: opacity 0.2s ease;
+  z-index: 2;
 
   &:hover {
-    background: var(--hover-color);
+    background: #ff4444;
   }
 `;
 
