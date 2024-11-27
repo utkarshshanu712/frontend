@@ -91,7 +91,18 @@ function Chat({ socket, username, onLogout }) {
     fetch(`${import.meta.env.VITE_API_URL}/users`)
       .then(res => res.json())
       .then(allUsers => {
-        setUsers(allUsers.filter(user => user.username !== username));
+        // Filter out current user and ensure all users have required properties
+        const filteredUsers = allUsers
+          .filter(user => user && user.username && user.username !== username)
+          .map(user => ({
+            ...user,
+            profilePic: user.profilePic || null
+          }));
+        setUsers(filteredUsers);
+      })
+      .catch(err => {
+        console.error('Error fetching users:', err);
+        setUsers([]); // Set empty array on error
       });
 
     // Handle online users updates
@@ -383,89 +394,29 @@ function Chat({ socket, username, onLogout }) {
       </SectionToggle>
 
       {activeSection === 'private' && (
-        <>
-          <UserListSection>
-            <SectionTitle>Online Users</SectionTitle>
-            {onlineUsers.map((user) => (
-              <UserItem 
-                key={user} 
-                isSelected={selectedUser === user}
-                onClick={() => {
-                  setSelectedUser(user);
-                  if (!privateChatUsers.includes(user)) {
-                    const updatedChats = [...privateChatUsers, user];
-                    setPrivateChatUsers(updatedChats);
-                    localStorage.setItem(`privatechats_${username}`, JSON.stringify(updatedChats));
-                  }
-                }}
+        <UserListSection>
+          {users.map(user => (
+            <UserItem 
+              key={user.username} 
+              onClick={() => setSelectedUser(user.username)}
+              active={selectedUser === user.username}
+            >
+              <UserAvatar 
+                hasImage={!!user.profilePic}
+                isOnline={onlineUsers.includes(user.username)}
+                profilePic={user.profilePic}
               >
-                <UserAvatar hasImage={false} isOnline>
-                  {user[0].toUpperCase()}
-                </UserAvatar>
-                <div>
-                  <UserName>{user}</UserName>
-                  <LastMessage>
-                    {chatHistory[createChatId(username, user)]?.[0]?.message || 'Click to start chatting'}
-                  </LastMessage>
-                </div>
-              </UserItem>
-            ))}
-          </UserListSection>
-
-          <UserListSection>
-            <SectionTitle>Offline Users</SectionTitle>
-            {users
-              .filter(user => !onlineUsers.includes(user))
-              .map((user) => (
-                <UserItem 
-                  key={user} 
-                  isSelected={selectedUser === user}
-                  onClick={() => {
-                    setSelectedUser(user);
-                    if (!privateChatUsers.includes(user)) {
-                      const updatedChats = [...privateChatUsers, user];
-                      setPrivateChatUsers(updatedChats);
-                      localStorage.setItem(`privatechats_${username}`, JSON.stringify(updatedChats));
-                    }
-                  }}
-                >
-                  <UserAvatar hasImage={false}>
-                    {user[0].toUpperCase()}
-                  </UserAvatar>
-                  <div>
-                    <UserName>{user}</UserName>
-                    <LastMessage>Offline</LastMessage>
-                  </div>
-                </UserItem>
-              ))}
-          </UserListSection>
-
-          {privateChatUsers.length > 0 && (
-            <UserListSection>
-              <SectionTitle>Recent Chats</SectionTitle>
-              {privateChatUsers.map((user) => (
-                <UserItem 
-                  key={user} 
-                  isSelected={selectedUser === user}
-                  onClick={() => setSelectedUser(user)}
-                >
-                  <UserAvatar 
-                    hasImage={false}
-                    isOnline={onlineUsers.includes(user)}
-                  >
-                    {user[0].toUpperCase()}
-                  </UserAvatar>
-                  <div>
-                    <UserName>{user}</UserName>
-                    <LastMessage>
-                      {onlineUsers.includes(user) ? 'Online' : 'Offline'}
-                    </LastMessage>
-                  </div>
-                </UserItem>
-              ))}
-            </UserListSection>
-          )}
-        </>
+                {!user.profilePic && user.username && user.username[0].toUpperCase()}
+              </UserAvatar>
+              <div>
+                <UserName>{user.username}</UserName>
+                <LastMessage>
+                  {onlineUsers.includes(user.username) ? 'Online' : 'Offline'}
+                </LastMessage>
+              </div>
+            </UserItem>
+          ))}
+        </UserListSection>
       )}
       
       {activeSection === 'group' && (
