@@ -835,16 +835,25 @@ const MessagesArea = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  background: var(--bg-primary);
+  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+              url('https://w0.peakpx.com/wallpaper/901/891/HD-wallpaper-pattern-black-dark-grey-shape-thumbnail.jpg');
+  background-repeat: repeat;
+  background-size: 200px;
+  padding: 1rem;
+  overflow-y: auto;
   position: relative;
 
-  @media (max-width: 768px) {
-    width: 100%;
-    position: absolute;
-    top: 0;
-    left: ${({ isSidebarOpen }) => isSidebarOpen ? '100%' : '0'};
-    transition: left 0.3s ease;
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 3px;
   }
 `;
 
