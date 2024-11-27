@@ -91,7 +91,7 @@ function Chat({ socket, username, onLogout }) {
     fetch(`${import.meta.env.VITE_API_URL}/users`)
       .then(res => res.json())
       .then(allUsers => {
-        setUsers(allUsers.map(user => user.username).filter(user => user !== username));
+        setUsers(allUsers.filter(user => user.username !== username));
       });
 
     // Handle online users updates
@@ -134,12 +134,23 @@ function Chat({ socket, username, onLogout }) {
       });
     });
 
-    socket.on("profile-pic-updated", ({ success }) => {
+    socket.on("profile-pic-updated", ({ success, profilePic, error }) => {
       if (success) {
+        setProfilePic(profilePic);
+        localStorage.setItem(`profilePic_${username}`, profilePic);
         alert("Profile picture updated successfully!");
       } else {
-        alert("Failed to update profile picture. Please try again.");
+        alert(`Failed to update profile picture: ${error}`);
       }
+    });
+
+    socket.on("user-profile-updated", ({ username: updatedUser, profilePic }) => {
+      // Update the user's profile pic in the UI
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.username === updatedUser ? { ...user, profilePic } : user
+        )
+      );
     });
 
     socket.on("receive-message", (message) => {
@@ -1049,6 +1060,9 @@ const UserAvatar = styled.div`
   margin-right: 1rem;
   overflow: hidden;
   position: relative;
+  background-image: ${({ profilePic }) => profilePic ? `url(${profilePic})` : 'none'};
+  background-size: cover;
+  background-position: center;
 
   img {
     width: 100%;
