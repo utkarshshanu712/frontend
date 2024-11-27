@@ -43,17 +43,18 @@ function Login({ socket, setUsername }) {
       return;
     }
 
-    // Store credentials temporarily in sessionStorage
-    sessionStorage.setItem('tempAuth', JSON.stringify({
+    const authData = {
       username: selectedUser,
       password
-    }));
+    };
 
-    socket.emit('auth', {
-      username: selectedUser,
-      password
-    });
+    // Store auth data in localStorage immediately
+    localStorage.setItem('chatAuth', JSON.stringify(authData));
+    
+    // Also keep in sessionStorage as backup
+    sessionStorage.setItem('tempAuth', JSON.stringify(authData));
 
+    socket.emit('auth', authData);
     setUsername(selectedUser);
   };
 
