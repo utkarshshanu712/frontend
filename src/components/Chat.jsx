@@ -700,10 +700,11 @@ const MessageBubble = styled.div`
   border-radius: 8px;
   max-width: 70%;
   word-wrap: break-word;
-  background: ${props => props.isOwn ? 'var(--message-out)' : 'var(--message-in)'};
-  align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
+  margin: 0.5rem 0;
+  background: ${props => props.$isSender ? 'var(--message-out)' : 'var(--message-in)'};
+  align-self: ${props => props.$isSender ? 'flex-end' : 'flex-start'};
 
-  &:hover .delete-btn {
+  &:hover .delete-button {
     display: block;
   }
 `;
@@ -821,11 +822,13 @@ const DeleteButton = styled.button`
   background: var(--bg-secondary);
   border: none;
   border-radius: 50%;
-  padding: 4px;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
   color: var(--text-secondary);
-
+  
   &:hover {
+    background: var(--hover-color);
     color: var(--text-primary);
   }
 `;
