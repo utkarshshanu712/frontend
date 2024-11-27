@@ -105,10 +105,17 @@ function Chat({ socket, username, onLogout }) {
       if (message.receiver) {
         // Private message
         const chatId = createChatId(message.sender, message.receiver);
-        setChatHistory(prev => ({
-          ...prev,
-          [chatId]: [...(prev[chatId] || []), message]
-        }));
+        setChatHistory(prev => {
+          // Check if message already exists
+          const existingMessages = prev[chatId] || [];
+          const exists = existingMessages.some(m => m._id === message._id);
+          if (exists) return prev;
+          
+          return {
+            ...prev,
+            [chatId]: [...existingMessages, message]
+          };
+        });
       } else {
         // Broadcast message
         setMessages(prev => {
@@ -194,20 +201,6 @@ function Chat({ socket, username, onLogout }) {
       };
 
       socket.emit("send-message", messageData);
-      
-      // Immediately update chat history for the sender
-      if (selectedUser) {
-        setChatHistory(prev => ({
-          ...prev,
-          [chatId]: [...(prev[chatId] || []), {
-            ...messageData,
-            _id: Date.now().toString() // Temporary ID until server confirms
-          }]
-        }));
-      } else {
-        setMessages(prev => [...prev, messageData]);
-      }
-
       setMessage("");
     }
   };
@@ -458,7 +451,7 @@ function Chat({ socket, username, onLogout }) {
           {renderUserList()}
         </Sidebar>
 
-        <MessagesArea>
+        <MessagesArea isSidebarOpen={isSidebarOpen}>
           <MessagesContainer>
             {displayMessages.map((msg, index) => (
               <MessageBubble
@@ -527,10 +520,13 @@ const ChatContainer = styled.div`
   width: 100vw;
   display: flex;
   flex-direction: column;
-  background: #111B21;
-  margin: 0;
-  padding: 0;
- 
+  background: var(--bg-primary);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
 `;
 
 const Header = styled.header`
@@ -548,15 +544,13 @@ const HeaderLogo = styled.img`
 `;
 
 const ChatLayout = styled.div`
-  display: grid;
-  grid-template-columns: ${props => props.isSidebarOpen ? '300px 1fr' : '0 1fr'};
-  flex: 1;
+  display: flex;
+  height: calc(100vh - 70px);
+  position: relative;
   overflow: hidden;
-  transition: grid-template-columns 0.3s ease;
-  
+
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    position: relative;
+    height: calc(100vh - 60px);
   }
 `;
 
@@ -676,23 +670,12 @@ const MessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  background-image: url('https://th.bing.com/th/id/R.2be118045076a1930ed1e494a259bbfc?rik=bSzCHAlO6ex4CQ&riu=http%3a%2f%2fwallpaperstock.net%2fwhatsapp-background-wallpapers_51439_1280x1024.jpg&ehk=9G0aB2SKVSQu0zmeYQ6Z3EOqBtHt2kRO8p5rTZx1D9Y%3d&risl=&pid=ImgRaw&r=0');
-  background-size: cover;
-  background-position: center;
-  border-radius: 8px;
-  
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #404040;
-    border-radius: 3px;
+
+  @media (max-width: 768px) {
+    padding-bottom: 60px;
+    height: calc(100vh - 130px);
   }
 `;
-
-
-
 
 const MessageBubble = styled.div`
   position: relative;
@@ -735,12 +718,20 @@ const TimeStamp = styled.div`
 
 const MessageForm = styled.form`
   display: flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 1rem;
-  background: #202C33;
-  gap: 0.8rem;
-  border-top: 1px solid #111B21;
+  background: var(--bg-secondary);
   position: sticky;
   bottom: 0;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    padding: 0.8rem;
+  }
 `;
 
 const MessageInput = styled.textarea`
@@ -834,11 +825,20 @@ const DeleteButton = styled.button`
 `;
 
 const MessagesArea = styled.div`
+  flex: 1;
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
-  background: #111B21;
+  background: var(--bg-primary);
+  position: relative;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: ${({ isSidebarOpen }) => isSidebarOpen ? '100%' : '0'};
+    transition: left 0.3s ease;
+  }
 `;
 
 const PrivateChatIndicator = styled.div`
