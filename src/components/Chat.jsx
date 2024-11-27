@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { IoSend, IoAttach, IoCamera, IoClose, IoMenu, IoPeople } from "react-icons/io5";
 import PasswordChangeModal from "./PasswordChangeModal";
+import logoImage from '../assets/trans1_480x480.png';
 
 const createChatId = (user1, user2) => {
   return [user1, user2].sort().join('_');
@@ -101,7 +102,23 @@ function Chat({ socket, username, onLogout }) {
     });
 
     socket.on("receive-message", (message) => {
-      setMessages(prev => [...prev, message]);
+      setMessages(prev => {
+        // Check if message already exists (prevent duplicates)
+        const exists = prev.some(m => m._id === message._id);
+        if (!exists) {
+          // Add to private chat users if it's a private message
+          if (message.receiver === username || message.sender === username) {
+            const otherUser = message.sender === username ? message.receiver : message.sender;
+            if (otherUser && !privateChatUsers.includes(otherUser)) {
+              const updatedPrivateChats = [...privateChatUsers, otherUser];
+              setPrivateChatUsers(updatedPrivateChats);
+              localStorage.setItem(`privatechats_${username}`, JSON.stringify(updatedPrivateChats));
+            }
+          }
+          return [...prev, message];
+        }
+        return prev;
+      });
     });
 
     socket.on("receive-file", (fileMessage) => {
@@ -119,6 +136,12 @@ function Chat({ socket, username, onLogout }) {
       setPrivateChatUsers(JSON.parse(savedPrivateChats));
     }
 
+    socket.on("delete-failed", ({ error }) => {
+      alert(`Failed to delete message: ${error}`);
+      // Refresh messages to restore state
+      socket.emit("get-messages");
+    });
+
     return () => {
       socket.off("users-update");
       socket.off("chat-message");
@@ -130,18 +153,37 @@ function Chat({ socket, username, onLogout }) {
       socket.off("profile-pic-updated");
       socket.off("receive-message");
       socket.off("receive-file");
+      socket.off("delete-failed");
     };
   }, [socket, username]);
 
   const sendMessage = (e) => {
     e.preventDefault();
     if (message.trim()) {
+      const chatId = selectedUser ? createChatId(username, selectedUser) : 'broadcast';
       const messageData = {
-        message: message,
-        receiver: selectedUser
+        sender: username,
+        receiver: selectedUser,
+        message: message.trim(),
+        chatId,
+        timestamp: new Date().toISOString()
       };
-      
+
       socket.emit("send-message", messageData);
+      
+      // Optimistically add message to local state
+      setMessages(prev => [...prev, {
+        ...messageData,
+        _id: Date.now().toString() // Temporary ID until server confirms
+      }]);
+
+      // Add user to private chats if not already present
+      if (selectedUser && !privateChatUsers.includes(selectedUser)) {
+        const updatedPrivateChats = [...privateChatUsers, selectedUser];
+        setPrivateChatUsers(updatedPrivateChats);
+        localStorage.setItem(`privatechats_${username}`, JSON.stringify(updatedPrivateChats));
+      }
+
       setMessage("");
     }
   };
@@ -356,7 +398,7 @@ function Chat({ socket, username, onLogout }) {
   return (
     <ChatContainer>
       <Header>
-        <HeaderLogo src="/assets/trans1_480x480.png" alt="Friend Chat Logo" />
+        <HeaderLogo src={logoImage} alt="Friend Chat Logo" />
         <UserInfo>
           <HamburgerButton onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
             <IoMenu />
@@ -650,29 +692,16 @@ const MessagesContainer = styled.div`
 
 
 const MessageBubble = styled.div`
-  max-width: 65%;
-  margin: 0.5rem;
-  padding: 0.8rem;
-  border-radius: 7.5px;
   position: relative;
-  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.3);
-  background: ${props => props.isOwn ? "#202C33" : "#111B21"};
-  align-self: ${props => props.isOwn ? "flex-end" : "flex-start"};
-  color: #ffffff;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  max-width: 70%;
+  word-wrap: break-word;
+  background: ${props => props.isOwn ? 'var(--message-out)' : 'var(--message-in)'};
+  align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    ${props => props.isOwn ? "right: -8px" : "left: -8px"};
-    width: 0;
-    height: 0;
-    border-top: 8px solid ${props => props.isOwn ? "#202C33" : "#111B21"};
-    border-${props => props.isOwn ? "left" : "right"}: 8px solid transparent;
-  }
-
-  @media (max-width: 768px) {
-    max-width: 85%;
+  &:hover .delete-btn {
+    display: block;
   }
 `;
 
@@ -782,16 +811,19 @@ const DeletedMessage = styled.div`
 `;
 
 const DeleteButton = styled.button`
-  background: transparent;
+  display: none;
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: var(--bg-secondary);
   border: none;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s;
+  border-radius: 50%;
   padding: 4px;
-  color: #a0a0a0;
-  
-  ${MessageContent}:hover & {
-    opacity: 1;
+  cursor: pointer;
+  color: var(--text-secondary);
+
+  &:hover {
+    color: var(--text-primary);
   }
 `;
 
