@@ -216,7 +216,7 @@ function Chat({ socket, username, onLogout }) {
   return (
     <ChatContainer>
       <Header>
-        <HeaderLogo src="./src/assets/trans1_480x480.png" alt="Friend Chat Logo" />
+        <HeaderLogo src="./assets/trans1_480x480.png" alt="Friend Chat Logo" />
         <UserInfo>
           <HamburgerButton onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
             <IoMenu />

@@ -57,9 +57,9 @@ function Login({ socket, setUsername }) {
 
   return (
     <LoginContainer>
-      <Logo src="./src/assets/trans1_480x480.png" alt="Friend Chat Logo" />
+      <Logo src="./assets/trans1_480x480.png" alt="Friend Chat Logo" />
       <LoginForm onSubmit={handleSubmit}>
-        <Logo src="./assets/trans_480x480.png" alt="Friend Chat Logo" style={{ width: '80px', height: '80px' }} />
+        <Logo src="assets/trans_480x480.png" alt="Friend Chat Logo" style={{ width: '80px', height: '80px' }} />
         <h2>Friend-Chat</h2>
         <select 
           value={selectedUser} 
