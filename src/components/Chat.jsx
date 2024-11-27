@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { IoSend, IoAttach, IoCamera, IoClose, IoMenu, IoPeople } from "react-icons/io5";
 import PasswordChangeModal from "./PasswordChangeModal";
-import logoImage from '../assets/trans_800x800.png';
+import logoImage from '../assets/orig_600x600-removebg-preview.png';
 
 const createChatId = (user1, user2) => {
   return [user1, user2].sort().join('_');
