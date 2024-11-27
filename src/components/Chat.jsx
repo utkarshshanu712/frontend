@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { IoSend, IoAttach, IoCamera, IoClose, IoMenu, IoPeople } from "react-icons/io5";
 import PasswordChangeModal from "./PasswordChangeModal";
-import logoImage from '../assets/trans1_480x480.png';
+import logoImage from '../assets/trans_800x800.png';
 
 const createChatId = (user1, user2) => {
   return [user1, user2].sort().join('_');
@@ -102,23 +102,20 @@ function Chat({ socket, username, onLogout }) {
     });
 
     socket.on("receive-message", (message) => {
-      setMessages(prev => {
-        // Check if message already exists (prevent duplicates)
-        const exists = prev.some(m => m._id === message._id);
-        if (!exists) {
-          // Add to private chat users if it's a private message
-          if (message.receiver === username || message.sender === username) {
-            const otherUser = message.sender === username ? message.receiver : message.sender;
-            if (otherUser && !privateChatUsers.includes(otherUser)) {
-              const updatedPrivateChats = [...privateChatUsers, otherUser];
-              setPrivateChatUsers(updatedPrivateChats);
-              localStorage.setItem(`privatechats_${username}`, JSON.stringify(updatedPrivateChats));
-            }
-          }
-          return [...prev, message];
-        }
-        return prev;
-      });
+      if (message.receiver) {
+        // Private message
+        const chatId = createChatId(message.sender, message.receiver);
+        setChatHistory(prev => ({
+          ...prev,
+          [chatId]: [...(prev[chatId] || []), message]
+        }));
+      } else {
+        // Broadcast message
+        setMessages(prev => {
+          const exists = prev.some(m => m._id === message._id);
+          return exists ? prev : [...prev, message];
+        });
+      }
     });
 
     socket.on("receive-file", (fileMessage) => {
@@ -157,6 +154,33 @@ function Chat({ socket, username, onLogout }) {
     };
   }, [socket, username]);
 
+  useEffect(() => {
+    if (selectedUser) {
+      const chatId = createChatId(username, selectedUser);
+      
+      // Load chat history if not already loaded
+      if (!chatHistory[chatId]) {
+        fetch(`${import.meta.env.VITE_API_URL}/api/messages/${chatId}`)
+          .then(res => res.json())
+          .then(messages => {
+            setChatHistory(prev => ({
+              ...prev,
+              [chatId]: messages
+            }));
+          })
+          .catch(console.error);
+      }
+
+      // Cleanup function
+      return () => {
+        if (chatHistory[chatId]) {
+          // Save current chat history to localStorage
+          localStorage.setItem(`chat_history_${chatId}`, JSON.stringify(chatHistory[chatId]));
+        }
+      };
+    }
+  }, [selectedUser, username]);
+
   const sendMessage = (e) => {
     e.preventDefault();
     if (message.trim()) {
@@ -166,22 +190,22 @@ function Chat({ socket, username, onLogout }) {
         receiver: selectedUser,
         message: message.trim(),
         chatId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date()
       };
 
       socket.emit("send-message", messageData);
       
-      // Optimistically add message to local state
-      setMessages(prev => [...prev, {
-        ...messageData,
-        _id: Date.now().toString() // Temporary ID until server confirms
-      }]);
-
-      // Add user to private chats if not already present
-      if (selectedUser && !privateChatUsers.includes(selectedUser)) {
-        const updatedPrivateChats = [...privateChatUsers, selectedUser];
-        setPrivateChatUsers(updatedPrivateChats);
-        localStorage.setItem(`privatechats_${username}`, JSON.stringify(updatedPrivateChats));
+      // Immediately update chat history for the sender
+      if (selectedUser) {
+        setChatHistory(prev => ({
+          ...prev,
+          [chatId]: [...(prev[chatId] || []), {
+            ...messageData,
+            _id: Date.now().toString() // Temporary ID until server confirms
+          }]
+        }));
+      } else {
+        setMessages(prev => [...prev, messageData]);
       }
 
       setMessage("");
@@ -191,17 +215,15 @@ function Chat({ socket, username, onLogout }) {
   const handleDeleteMessage = (messageId) => {
     socket.emit("delete-message", { messageId });
     
-    // Remove message from local state immediately
-    setMessages(prevMessages => 
-      prevMessages.filter(msg => msg._id !== messageId)
-    );
-    
-    // Remove from deletedMessages set if it exists
-    setDeletedMessages(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(messageId);
-      return newSet;
-    });
+    if (selectedUser) {
+      const chatId = createChatId(username, selectedUser);
+      setChatHistory(prev => ({
+        ...prev,
+        [chatId]: prev[chatId].filter(msg => msg._id !== messageId)
+      }));
+    } else {
+      setMessages(prev => prev.filter(msg => msg._id !== messageId));
+    }
   };
 
   const handleProfilePicChange = (e) => {
@@ -252,25 +274,6 @@ function Chat({ socket, username, onLogout }) {
       sendMessage(e);
     }
   };
-
-  useEffect(() => {
-    if (selectedUser) {
-      const chatId = [username, selectedUser].sort().join('_');
-      
-      // Load chat history if not already loaded
-      if (!chatHistory[chatId]) {
-        fetch(`${import.meta.env.VITE_API_URL}/api/messages/${chatId}`)
-          .then(res => res.json())
-          .then(messages => {
-            setChatHistory(prev => ({
-              ...prev,
-              [chatId]: messages
-            }));
-          })
-          .catch(console.error);
-      }
-    }
-  }, [selectedUser]);
 
   const displayMessages = selectedUser
     ? (chatHistory[[username, selectedUser].sort().join('_')] || [])

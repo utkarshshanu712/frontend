@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import logoImage1 from '../assets/trans1_480x480.png';
+import logoImage2 from '../assets/trans_480x480.png';
 
 function Login({ socket, setUsername }) {
   const [users, setUsers] = useState([]);
@@ -57,9 +59,9 @@ function Login({ socket, setUsername }) {
 
   return (
     <LoginContainer>
-      <Logo src="./assets/trans1_480x480.png" alt="Friend Chat Logo" />
+      <Logo src={logoImage1} alt="Friend Chat Logo" />
       <LoginForm onSubmit={handleSubmit}>
-        <Logo src="assets/trans_480x480.png" alt="Friend Chat Logo" style={{ width: '80px', height: '80px' }} />
+        <Logo src={logoImage2} alt="Friend Chat Logo" style={{ width: '80px', height: '80px' }} />
         <h2>Friend-Chat</h2>
         <select 
           value={selectedUser} 
