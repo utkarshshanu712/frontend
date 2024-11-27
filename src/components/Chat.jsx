@@ -259,46 +259,71 @@ function Chat({ socket, username, onLogout }) {
     }
   };
 
-  const handleProfilePicChange = (e) => {
+  const handleProfilePicChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 50000000) { // 50MB limit
-        alert("File size too large. Please choose an image under 50MB.");
-        return;
-      }
+    if (!file) return;
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const imageData = reader.result;
-        socket.emit("update-profile-pic", {
-          username,
-          profilePic: imageData
-        });
-        setProfilePic(imageData);
-        localStorage.setItem(`profilePic_${username}`, imageData);
-      };
-      reader.readAsDataURL(file);
+    // Check file size (limit to 10MB for profile pics)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Profile picture must be less than 10MB');
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const profilePicData = event.target.result;
+      socket.emit('update-profile-pic', {
+        username,
+        profilePic: profilePicData
+      });
+      
+      // Store locally
+      localStorage.setItem(`profilePic_${username}`, profilePicData);
+      setProfilePic(profilePicData);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 50000000) { // 50MB limit
-        alert("File size too large. Please choose a file under 50MB.");
-        return;
-      }
+  const validateFileType = (file) => {
+    const allowedTypes = [
+      'image/',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+    return allowedTypes.some(type => file.type.startsWith(type));
+  };
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        socket.emit("send-file", {
-          name: file.name,
-          type: file.type,
-          data: reader.result
-        });
-      };
-      reader.readAsDataURL(file);
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!validateFileType(file)) {
+      alert('Invalid file type. Please upload images, PDFs, Word documents, Excel sheets, or text files.');
+      return;
     }
+
+    // Check file size (limit to 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      alert('File size must be less than 50MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const fileData = {
+        name: file.name,
+        type: file.type,
+        data: event.target.result,
+        size: file.size
+      };
+
+      socket.emit('send-file', fileData);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleKeyPress = (e) => {
@@ -451,9 +476,9 @@ function Chat({ socket, username, onLogout }) {
             <input
               type="file"
               ref={fileInputRef}
-              onChange={handleProfilePicChange}
-              accept="image/*"
               style={{ display: 'none' }}
+              onChange={handleFileUpload}
+              accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
             />
           </ProfilePicContainer>
           <Username>{username}</Username>
