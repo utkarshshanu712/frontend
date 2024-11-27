@@ -3,6 +3,10 @@ import styled from "styled-components";
 import { IoSend, IoAttach, IoCamera, IoClose, IoMenu, IoPeople } from "react-icons/io5";
 import PasswordChangeModal from "./PasswordChangeModal";
 
+const createChatId = (user1, user2) => {
+  return [user1, user2].sort().join('_');
+};
+
 function Chat({ socket, username, onLogout }) {
   const [users, setUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
