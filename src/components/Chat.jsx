@@ -60,6 +60,7 @@ function Chat({ socket, username, onLogout }) {
   const [deletedMessages, setDeletedMessages] = useState(new Set());
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const profilePicInputRef = useRef(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [chatHistory, setChatHistory] = useState({});
   const [activeSection, setActiveSection] = useState('private'); // 'private' or 'group'
@@ -263,9 +264,9 @@ function Chat({ socket, username, onLogout }) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check file size (limit to 10MB for profile pics)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Profile picture must be less than 10MB');
+    // Check file size (limit to 2MB for profile pics)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Profile picture must be less than 2MB');
       return;
     }
 
@@ -282,12 +283,11 @@ function Chat({ socket, username, onLogout }) {
         username,
         profilePic: profilePicData
       });
-      
-      // Store locally
-      localStorage.setItem(`profilePic_${username}`, profilePicData);
-      setProfilePic(profilePicData);
     };
     reader.readAsDataURL(file);
+    
+    // Clear the input
+    e.target.value = '';
   };
 
   const validateFileType = (file) => {
@@ -487,15 +487,15 @@ function Chat({ socket, username, onLogout }) {
             ) : (
               <DefaultProfilePic>{username[0].toUpperCase()}</DefaultProfilePic>
             )}
-            <CameraOverlay onClick={() => fileInputRef.current?.click()}>
+            <CameraOverlay onClick={() => profilePicInputRef.current?.click()}>
               <IoCamera />
             </CameraOverlay>
             <input
               type="file"
-              ref={fileInputRef}
+              ref={profilePicInputRef}
               style={{ display: 'none' }}
-              onChange={handleFileUpload}
-              accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
+              onChange={handleProfilePicChange}
+              accept="image/*"
             />
           </ProfilePicContainer>
           <Username>{username}</Username>
