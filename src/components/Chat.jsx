@@ -48,6 +48,10 @@ const MessageBubble = styled.div`
   }
 `;
 
+const ProfilePicInput = styled.input.attrs({ type: 'file' })`
+  display: none;
+`;
+
 function Chat({ socket, username, onLogout }) {
   const [users, setUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -59,7 +63,6 @@ function Chat({ socket, username, onLogout }) {
   const [profilePic, setProfilePic] = useState(null);
   const [deletedMessages, setDeletedMessages] = useState(new Set());
   const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [chatHistory, setChatHistory] = useState({});
   const [activeSection, setActiveSection] = useState('private'); // 'private' or 'group'
@@ -166,7 +169,17 @@ function Chat({ socket, username, onLogout }) {
     });
 
     socket.on("receive-file", (fileMessage) => {
-      setMessages(prev => [...prev, fileMessage]);
+      if (fileMessage.receiver) {
+        // Private file message
+        const chatId = createChatId(fileMessage.sender, fileMessage.receiver);
+        setChatHistory(prev => ({
+          ...prev,
+          [chatId]: [...(prev[chatId] || []), fileMessage]
+        }));
+      } else {
+        // Broadcast file message
+        setMessages(prev => [...prev, fileMessage]);
+      }
     });
 
     // Remove duplicate message-history listener
@@ -259,11 +272,7 @@ function Chat({ socket, username, onLogout }) {
     }
   };
 
-  const handleProfilePicChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Check file size (limit to 10MB for profile pics)
+  const handleProfilePicChange = async (file) => {
     if (file.size > 10 * 1024 * 1024) {
       alert('Profile picture must be less than 10MB');
       return;
@@ -277,7 +286,6 @@ function Chat({ socket, username, onLogout }) {
         profilePic: profilePicData
       });
       
-      // Store locally
       localStorage.setItem(`profilePic_${username}`, profilePicData);
       setProfilePic(profilePicData);
     };
@@ -301,12 +309,21 @@ function Chat({ socket, username, onLogout }) {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Reset input
+    e.target.value = '';
+
+    // Handle profile picture upload if triggered from profile pic button
+    if (e.target === fileInputRef.current && file.type.startsWith('image/')) {
+      handleProfilePicChange(file);
+      return;
+    }
+
+    // Handle regular file attachment
     if (!validateFileType(file)) {
       alert('Invalid file type. Please upload images, PDFs, Word documents, Excel sheets, or text files.');
       return;
     }
 
-    // Check file size (limit to 50MB)
     if (file.size > 50 * 1024 * 1024) {
       alert('File size must be less than 50MB');
       return;
@@ -318,7 +335,9 @@ function Chat({ socket, username, onLogout }) {
         name: file.name,
         type: file.type,
         data: event.target.result,
-        size: file.size
+        sender: username,
+        receiver: selectedUser,
+        chatId: selectedUser ? createChatId(username, selectedUser) : 'broadcast'
       };
 
       socket.emit('send-file', fileData);
@@ -456,6 +475,14 @@ function Chat({ socket, username, onLogout }) {
     </UserList>
   );
 
+  const triggerProfilePicUpload = () => {
+    profilePicInputRef.current?.click();
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <ChatContainer>
       <Header>
@@ -470,15 +497,18 @@ function Chat({ socket, username, onLogout }) {
             ) : (
               <DefaultProfilePic>{username[0].toUpperCase()}</DefaultProfilePic>
             )}
-            <CameraOverlay onClick={() => fileInputRef.current?.click()}>
+            <CameraOverlay onClick={() => {
+              if (fileInputRef.current) {
+                fileInputRef.current.accept = "image/*";
+                fileInputRef.current.click();
+              }
+            }}>
               <IoCamera />
             </CameraOverlay>
-            <input
-              type="file"
-              ref={fileInputRef}
-              style={{ display: 'none' }}
-              onChange={handleFileUpload}
-              accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
+            <ProfilePicInput 
+              ref={profilePicInputRef}
+              onChange={handleProfilePicChange}
+              accept="image/*"
             />
           </ProfilePicContainer>
           <Username>{username}</Username>
@@ -526,14 +556,32 @@ function Chat({ socket, username, onLogout }) {
                 {msg.sender !== username && (
                   <SenderName>{msg.sender}</SenderName>
                 )}
-                {msg.message}
+                {msg.isFile ? (
+                  <div>
+                    {msg.fileData.type.startsWith('image/') ? (
+                      <img 
+                        src={msg.fileData.data} 
+                        alt={msg.fileData.name}
+                        style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '4px' }}
+                      />
+                    ) : (
+                      <a 
+                        href={msg.fileData.data}
+                        download={msg.fileData.name}
+                        style={{ color: 'inherit', textDecoration: 'underline' }}
+                      >
+                        📎 {msg.fileData.name}
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  msg.message
+                )}
                 <TimeStamp>
                   {new Date(msg.timestamp).toLocaleTimeString()}
                 </TimeStamp>
                 {msg.sender === username && (
-                  <DeleteButton
-                    onClick={() => handleDeleteMessage(msg._id)}
-                  >
+                  <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
                     <IoClose size={14} />
                   </DeleteButton>
                 )}
@@ -549,7 +597,13 @@ function Chat({ socket, username, onLogout }) {
               onKeyPress={handleKeyPress}
               placeholder={`Message ${selectedUser || 'everyone'}...`}
             />
-            <AttachButton onClick={() => fileInputRef.current.click()}>
+            <AttachButton onClick={(e) => {
+              e.preventDefault();
+              if (fileInputRef.current) {
+                fileInputRef.current.accept = ".pdf,.doc,.docx,.txt,.xls,.xlsx";
+                fileInputRef.current.click();
+              }
+            }}>
               <IoAttach />
             </AttachButton>
             <input
@@ -557,6 +611,7 @@ function Chat({ socket, username, onLogout }) {
               ref={fileInputRef}
               onChange={handleFileUpload}
               style={{ display: 'none' }}
+              accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
             />
             <SendButton type="submit">
               <IoSend />
