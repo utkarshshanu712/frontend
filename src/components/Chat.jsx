@@ -8,6 +8,46 @@ const createChatId = (user1, user2) => {
   return [user1, user2].sort().join('_');
 };
 
+const DeleteButton = styled.button`
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+  z-index: 2;
+
+  &:hover {
+    background: #ff4444;
+  }
+`;
+
+const MessageBubble = styled.div`
+  position: relative;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  max-width: 70%;
+  word-wrap: break-word;
+  margin: 0.5rem 0;
+  background: ${props => props.isOwn ? 'var(--message-out)' : 'var(--message-in)'};
+  align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
+
+  &:hover ${DeleteButton} {
+    opacity: 1;
+    visibility: visible;
+  }
+`;
+
 function Chat({ socket, username, onLogout }) {
   const [users, setUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -678,22 +718,6 @@ const MessagesContainer = styled.div`
   }
 `;
 
-const MessageBubble = styled.div`
-  position: relative;
-  padding: 0.8rem 1rem;
-  border-radius: 8px;
-  max-width: 70%;
-  word-wrap: break-word;
-  margin: 0.5rem 0;
-  background: ${props => props.isOwn ? 'var(--message-out)' : 'var(--message-in)'};
-  align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
-
-  &:hover ${DeleteButton} {
-    opacity: 1;
-    visibility: visible;
-  }
-`;
-
 const MessageContent = styled.div`
   display: flex;
   flex-direction: column;
@@ -805,30 +829,6 @@ const DeletedMessage = styled.div`
   font-style: italic;
   color: #a0a0a0;
   font-size: 0.9rem;
-`;
-
-const DeleteButton = styled.button`
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease;
-  z-index: 2;
-
-  &:hover {
-    background: #ff4444;
-  }
 `;
 
 const MessagesArea = styled.div`
