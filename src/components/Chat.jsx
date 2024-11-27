@@ -456,21 +456,23 @@ function Chat({ socket, username, onLogout }) {
             {displayMessages.map((msg, index) => (
               <MessageBubble
                 key={msg._id || index}
-                isOwn={msg.sender === username || msg.username === username}
-                isPrivate={msg.isPrivate}
+                isOwn={msg.sender === username}
               >
-                <MessageContent>
-                  <SenderName>{msg.sender || msg.username}</SenderName>
-                  <MessageText>{msg.message}</MessageText>
-                  <TimeStamp>
-                    {new Date(msg.timestamp).toLocaleTimeString()}
-                  </TimeStamp>
-                  {(msg.sender === username || msg.username === username) && (
-                    <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
-                      <IoClose />
-                    </DeleteButton>
-                  )}
-                </MessageContent>
+                {msg.sender !== username && (
+                  <SenderName>{msg.sender}</SenderName>
+                )}
+                <MessageText>{msg.message}</MessageText>
+                <TimeStamp>
+                  {new Date(msg.timestamp).toLocaleTimeString()}
+                </TimeStamp>
+                {msg.sender === username && (
+                  <DeleteButton
+                    className="delete-button"
+                    onClick={() => handleDeleteMessage(msg._id)}
+                  >
+                    <IoClose />
+                  </DeleteButton>
+                )}
               </MessageBubble>
             ))}
             <div ref={messagesEndRef} />
@@ -684,11 +686,12 @@ const MessageBubble = styled.div`
   max-width: 70%;
   word-wrap: break-word;
   margin: 0.5rem 0;
-  background: ${props => props.$isSender ? 'var(--message-out)' : 'var(--message-in)'};
-  align-self: ${props => props.$isSender ? 'flex-end' : 'flex-start'};
+  background: ${props => props.isOwn ? 'var(--message-out)' : 'var(--message-in)'};
+  align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
 
   &:hover .delete-button {
-    display: block;
+    opacity: 1;
+    visibility: visible;
   }
 `;
 
@@ -806,21 +809,27 @@ const DeletedMessage = styled.div`
 `;
 
 const DeleteButton = styled.button`
-  display: none;
   position: absolute;
-  top: -10px;
-  right: -10px;
-  background: var(--bg-secondary);
-  border: none;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: none;
   cursor: pointer;
-  color: var(--text-secondary);
-  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  padding: 0;
+  font-size: 16px;
+
   &:hover {
     background: var(--hover-color);
-    color: var(--text-primary);
   }
 `;
 
