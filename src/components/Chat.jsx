@@ -60,6 +60,23 @@ const MessageBubble = styled.div`
   }
 `;
 
+const Container = styled.div`
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg-primary);
+  position: relative;
+`;
+
+const ChatSection = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  position: relative;
+  overflow: hidden;
+`;
+
 function Chat({ socket, username, onLogout }) {
   const [users, setUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
