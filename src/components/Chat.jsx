@@ -736,9 +736,10 @@ const MessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  padding-bottom: 80px; /* Increased padding to prevent overlap */
 
   @media (max-width: 768px) {
-    padding-bottom: 60px;
+    padding-bottom: 80px; /* Ensure consistent padding to prevent overlap */
     height: calc(100vh - 130px);
   }
 `;
@@ -776,6 +777,7 @@ const MessageForm = styled.form`
   position: sticky;
   bottom: 0;
   width: 100%;
+  z-index: 2; /* Ensure form stays above other content */
 
   @media (max-width: 768px) {
     position: fixed;
