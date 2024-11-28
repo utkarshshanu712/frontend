@@ -72,9 +72,6 @@ function Chat({ socket, username, onLogout }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [chatHistory, setChatHistory] = useState({});
   const [activeSection, setActiveSection] = useState("private"); // 'private' or 'group'
-  const [unreadCounts, setUnreadCounts] = useState({});
-  const [notifications, setNotifications] = useState([]);
-  const [lastReadTimestamps, setLastReadTimestamps] = useState({});
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -180,38 +177,23 @@ function Chat({ socket, username, onLogout }) {
 
     socket.on("receive-message", (message) => {
       if (message.receiver) {
+        // Private message
         const chatId = createChatId(message.sender, message.receiver);
-        
-        // Only update unread count if message is not from current user and not in current chat
-        if (message.sender !== username && selectedUser !== message.sender) {
-          setUnreadCounts(prev => ({
-            ...prev,
-            [chatId]: (prev[chatId] || 0) + 1
-          }));
-
-          // Show notification
-          if (Notification.permission === "granted") {
-            new Notification("New Message", {
-              body: `${message.sender}: ${message.message.substring(0, 50)}${message.message.length > 50 ? '...' : ''}`,
-              icon: "/src/assets/trans1_480x480.png"
-            });
-          }
-        }
-
-        setChatHistory(prev => {
+        setChatHistory((prev) => {
+          // Check if message already exists
           const existingMessages = prev[chatId] || [];
-          const exists = existingMessages.some(m => m._id === message._id);
+          const exists = existingMessages.some((m) => m._id === message._id);
           if (exists) return prev;
 
           return {
             ...prev,
-            [chatId]: [...existingMessages, message]
+            [chatId]: [...existingMessages, message],
           };
         });
       } else {
         // Broadcast message
-        setMessages(prev => {
-          const exists = prev.some(m => m._id === message._id);
+        setMessages((prev) => {
+          const exists = prev.some((m) => m._id === message._id);
           return exists ? prev : [...prev, message];
         });
       }
@@ -237,11 +219,6 @@ function Chat({ socket, username, onLogout }) {
       // Refresh messages to restore state
       socket.emit("get-messages");
     });
-
-    // Request notification permission
-    if ('Notification' in window) {
-      Notification.requestPermission();
-    }
 
     return () => {
       socket.off("users-update");
@@ -419,75 +396,66 @@ function Chat({ socket, username, onLogout }) {
     ? chatHistory[[username, selectedUser].sort().join("_")] || []
     : messages.filter((msg) => !msg.receiver);
 
-  const renderUserList = () => {
-    return privateChatUsers.map(user => {
-      const chatId = createChatId(username, user);
-      const unreadCount = unreadCounts[chatId] || 0;
-      
-      return (
-        <UserListItem
-          key={user}
-          onClick={() => {
-            setSelectedUser(user);
-            setUnreadCounts(prev => ({
-              ...prev,
-              [chatId]: 0
-            }));
-            socket.emit("mark-messages-read", { chatId, reader: username });
-          }}
+  const renderUserList = () => (
+    <UserList>
+      <SectionToggle>
+        <button
+          className={activeSection === "private" ? "active" : ""}
+          onClick={() => setActiveSection("private")}
         >
-          <UserAvatar 
-            isOnline={onlineUsers.includes(user)} 
-            hideStatus={false}
-          />
-          <UserInfo>
-            <span>{user}</span>
-            {unreadCount > 0 && (
-              <UnreadBadge>{unreadCount}</UnreadBadge>
-            )}
-          </UserInfo>
-        </UserListItem>
-      );
-    });
-  };
+          Private Chats
+        </button>
+        <button
+          className={activeSection === "group" ? "active" : ""}
+          onClick={() => setActiveSection("group")}
+        >
+          Group Chats
+        </button>
+      </SectionToggle>
 
-  const updateUnreadCount = (chatId, increment = true) => {
-    setUnreadCounts(prev => ({
-      ...prev,
-      [chatId]: increment ? (prev[chatId] || 0) + 1 : 0
-    }));
-  };
+      {activeSection === "private" && (
+        <UserListSection>
+          {users.map((user) => (
+            <UserItem
+              key={user.username}
+              onClick={() => setSelectedUser(user.username)}
+              active={selectedUser === user.username}
+            >
+              <UserAvatar
+                hasImage={!!user.profilePic}
+                isOnline={onlineUsers.includes(user.username)}
+                profilePic={user.profilePic}
+              >
+                {!user.profilePic &&
+                  user.username &&
+                  user.username[0].toUpperCase()}
+              </UserAvatar>
+              <div>
+                <UserName>{user.username}</UserName>
+                <LastMessage>
+                  {onlineUsers.includes(user.username) ? "Online" : "Offline"}
+                </LastMessage>
+              </div>
+            </UserItem>
+          ))}
+        </UserListSection>
+      )}
 
-  const markMessagesAsRead = (chatId) => {
-    setUnreadCounts(prev => ({
-      ...prev,
-      [chatId]: 0
-    }));
-    socket.emit("mark-messages-read", { chatId, reader: username });
-  };
-
-  const handleUserSelect = (user) => {
-    const chatId = createChatId(username, user);
-    setSelectedUser(user);
-    markMessagesAsRead(chatId);
-    
-    // Save last read timestamp
-    setLastReadTimestamps(prev => ({
-      ...prev,
-      [chatId]: Date.now()
-    }));
-
-    // Request notification permission if not already granted
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  };
-
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
+      {activeSection === "group" && (
+        <GroupList>
+          <GroupItem onClick={() => setSelectedUser(null)}>
+            <UserAvatar hasImage={false}>
+              <IoPeople />
+            </UserAvatar>
+            <div>
+              <UserName>General Chat</UserName>
+              <LastMessage>Public chat room</LastMessage>
+            </div>
+          </GroupItem>
+        </GroupList>
+      )}
+    </UserList>
+  );
 
   return (
     <ChatContainer>
@@ -692,16 +660,8 @@ const Sidebar = styled.div`
 const UserInfo = styled.div`
   display: flex;
   align-items: center;
-  flex: 1;
-  margin-left: 12px;
-  justify-content: space-between;
-  
-  span {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  gap: 1rem;
+  color: #ffffff;
 `;
 
 const ProfilePicContainer = styled.div`
@@ -1100,32 +1060,6 @@ const UserAvatar = styled.div`
 
 const FileContent = styled.div`
   margin-bottom: 0.5rem;
-`;
-
-const UserListItem = styled.div`
-  display: flex;
-  align-items: center;
-  padding: 0.8rem 1rem;
-  cursor: pointer;
-  position: relative;
-
-  &:hover {
-    background: var(--hover-color);
-  }
-`;
-
-const UnreadBadge = styled.span`
-  background: var(--accent-color);
-  color: white;
-  border-radius: 50%;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  margin-left: 8px;
 `;
 
 export default Chat;
