@@ -507,18 +507,19 @@ function Chat({ socket, username, onLogout }) {
       socket.off('call-joined');
       socket.off('call-ended');
     };
-  }, [socket]);
+  }, [socket, selectedUser]);
 
   return (
     <>
       {isInCall && (
         <VideoCall
           roomName={callRoomName}
-          username={username}
           onClose={() => {
             setIsInCall(false);
             setCallRoomName('');
+            socket.emit('call-ended', { target: selectedUser });
           }}
+          username={username}
         />
       )}
       <ChatContainer>

@@ -64,8 +64,8 @@ const CallButtons = styled.div`
 `;
 
 const CallButton = styled.button`
-  background: transparent;
-  border: none;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-color);
   color: var(--accent-color);
   font-size: 1.2rem;
   cursor: pointer;
@@ -74,9 +74,11 @@ const CallButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0 5px;
   
   &:hover {
     background: var(--hover-color);
+    transform: scale(1.1);
   }
 
   svg {
