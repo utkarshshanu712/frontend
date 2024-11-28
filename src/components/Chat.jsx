@@ -63,15 +63,66 @@ const MessageBubble = styled.div`
 `;
 
 const ReadReceipt = ({ isRead, readAt }) => {
-  if (!isRead) {
-    return <IoCheckmarkOutline />;
-  }
   return (
     <div className="read-receipt" title={readAt ? `Read at ${new Date(readAt).toLocaleTimeString()}` : ''}>
-      <IoCheckmarkDoneOutline color="#34B7F1" />
+      {isRead ? (
+        <IoCheckmarkDoneOutline color="#34B7F1" />
+      ) : (
+        <IoCheckmarkOutline />
+      )}
     </div>
   );
 };
+
+const UserStatus = ({ selectedUser, socket }) => {
+  const [lastActive, setLastActive] = useState(null);
+  const [isOnline, setIsOnline] = useState(false);
+
+  useEffect(() => {
+    if (!selectedUser) return;
+
+    // Get initial status
+    fetch(`${import.meta.env.VITE_API_URL}/user/${selectedUser}/status`)
+      .then(res => res.json())
+      .then(data => {
+        setIsOnline(data.isOnline);
+        setLastActive(data.lastActive);
+      });
+
+    // Listen for status updates
+    socket.on('user-status-update', ({ username, status }) => {
+      if (username === selectedUser) {
+        setIsOnline(status.isOnline);
+        setLastActive(status.lastActive);
+      }
+    });
+
+    return () => socket.off('user-status-update');
+  }, [selectedUser, socket]);
+
+  const formatLastActive = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+    
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)} min ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
+    return date.toLocaleDateString();
+  };
+
+  return (
+    <StatusText>
+      {isOnline ? 'online' : lastActive ? `last seen ${formatLastActive(lastActive)}` : ''}
+    </StatusText>
+  );
+};
+
+const StatusText = styled.span`
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+`;
 
 function Chat({ socket, username, onLogout }) {
   const [users, setUsers] = useState([]);
@@ -89,6 +140,7 @@ function Chat({ socket, username, onLogout }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [chatHistory, setChatHistory] = useState({});
   const [activeSection, setActiveSection] = useState('private'); // 'private' or 'group'
+  const [fileToSend, setFileToSend] = useState(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -234,6 +286,34 @@ function Chat({ socket, username, onLogout }) {
       socket.emit("get-messages");
     });
 
+    socket.on("receive-private-message", (data) => {
+      setMessages(prev => [...prev, { ...data, isRead: false }]);
+      
+      // Mark message as read if chat is open
+      if (selectedUser === data.sender) {
+        socket.emit("mark-message-read", { messageId: data._id });
+      }
+    });
+
+    socket.on("message-read", ({ messageId, readAt }) => {
+      setMessages(prev => prev.map(msg => 
+        msg._id === messageId ? { ...msg, isRead: true, readAt } : msg
+      ));
+    });
+
+    socket.on("message-sent", (confirmedMessage) => {
+      setMessages(prev => prev.map(msg => 
+        msg.timestamp === confirmedMessage.timestamp ? 
+        { ...confirmedMessage, isRead: false } : 
+        msg
+      ));
+    });
+
+    socket.on("message-error", ({ error }) => {
+      console.error("Message error:", error);
+      // Optionally show error to user
+    });
+
     return () => {
       socket.off("users-update");
       socket.off("chat-message");
@@ -246,6 +326,10 @@ function Chat({ socket, username, onLogout }) {
       socket.off("receive-message");
       socket.off("receive-file");
       socket.off("delete-failed");
+      socket.off("receive-private-message");
+      socket.off("message-read");
+      socket.off("message-sent");
+      socket.off("message-error");
     };
   }, [socket, username]);
 
@@ -276,20 +360,25 @@ function Chat({ socket, username, onLogout }) {
     }
   }, [selectedUser, username]);
 
-  const sendMessage = (e) => {
+  const sendMessage = async (e) => {
     e.preventDefault();
-    if (message.trim()) {
-      const chatId = selectedUser ? createChatId(username, selectedUser) : 'broadcast';
+    if (message.trim() || fileToSend) {
+      const timestamp = new Date().toISOString();
       const messageData = {
         sender: username,
         receiver: selectedUser,
         message: message.trim(),
-        chatId,
-        timestamp: new Date()
+        timestamp,
+        isRead: false,
+        chatId: generateChatId(username, selectedUser)
       };
 
-      socket.emit("send-message", messageData);
+      socket.emit("send-private-message", messageData);
+      
+      // Optimistically add message to state
+      setMessages(prev => [...prev, messageData]);
       setMessage("");
+      setFileToSend(null);
     }
   };
 
@@ -460,65 +549,6 @@ function Chat({ socket, username, onLogout }) {
     </UserList>
   );
 
-  const UserStatus = ({ selectedUser, socket }) => {
-    const [lastActive, setLastActive] = useState(null);
-    const [isOnline, setIsOnline] = useState(false);
-
-    useEffect(() => {
-      if (!selectedUser) return;
-
-      // Get initial status
-      fetch(`${import.meta.env.VITE_API_URL}/user/${selectedUser}/status`)
-        .then(res => res.json())
-        .then(data => {
-          setIsOnline(data.isOnline);
-          setLastActive(data.lastActive);
-        });
-
-      // Listen for status updates
-      socket.on('user-status-update', ({ username, status }) => {
-        if (username === selectedUser) {
-          setIsOnline(status.isOnline);
-          setLastActive(status.lastActive);
-        }
-      });
-
-      return () => {
-        socket.off('user-status-update');
-      };
-    }, [selectedUser, socket]);
-
-    if (!selectedUser) return null;
-
-    const formatLastActive = (timestamp) => {
-      if (!timestamp) return '';
-      const date = new Date(timestamp);
-      const now = new Date();
-      const diff = now - date;
-      
-      // Less than a minute
-      if (diff < 60000) return 'just now';
-      // Less than an hour
-      if (diff < 3600000) return `${Math.floor(diff / 60000)} min ago`;
-      // Less than a day
-      if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
-      // More than a day
-      return date.toLocaleDateString();
-    };
-
-    return (
-      <StatusContainer>
-        {isOnline ? (
-          <OnlineStatus>online</OnlineStatus>
-        ) : (
-          <LastActiveStatus>
-            last seen {formatLastActive(lastActive)}
-          </LastActiveStatus>
-        )}
-      </StatusContainer>
-    );
-  };
-
   return (
     <ChatContainer>
       <Header>
@@ -615,6 +645,9 @@ function Chat({ socket, username, onLogout }) {
                   <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
                   {msg.sender === username && (
                     <ReadReceipt isRead={msg.isRead} readAt={msg.readAt} />
+                  )}
+                  {msg.sender === username && (
+                    <UserStatus selectedUser={msg.sender} socket={socket} />
                   )}
                 </div>
                 {msg.sender === username && (
