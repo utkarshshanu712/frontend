@@ -41,11 +41,45 @@ const MessageBubble = styled.div`
   margin: 0.5rem 0;
   background: ${props => props.isOwn ? 'var(--message-out)' : 'var(--message-in)'};
   align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
+  min-width: 80px;
 
   &:hover ${DeleteButton} {
     opacity: 1;
     visibility: visible;
   }
+`;
+
+const TickIndicator = styled.span`
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  font-size: 0.7rem;
+  color: #8696a0;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+`;
+
+const MessageContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  padding-right: 15px;
+  margin-bottom: ${props => props.isOwn ? '12px' : '0'};
+  position: relative;
+`;
+
+const MessageText = styled.div`
+  word-break: break-word;
+  color: inherit;
+`;
+
+const TimeStamp = styled.div`
+  font-size: 0.7rem;
+  color: #a0a0a0;
+  text-align: right;
+  margin-top: 0.2rem;
+  padding-right: 12px; /* Make space for tick indicator */
 `;
 
 function Chat({ socket, username, onLogout }) {
@@ -166,17 +200,15 @@ function Chat({ socket, username, onLogout }) {
 
     socket.on("receive-message", (message) => {
       if (message.receiver) {
-        // Private message
         const chatId = createChatId(message.sender, message.receiver);
         setChatHistory(prev => {
-          // Check if message already exists
           const existingMessages = prev[chatId] || [];
           const exists = existingMessages.some(m => m._id === message._id);
           if (exists) return prev;
           
           return {
             ...prev,
-            [chatId]: [...existingMessages, message]
+            [chatId]: [...existingMessages, { ...message, isRead: false }]
           };
         });
       } else {
@@ -502,39 +534,18 @@ function Chat({ socket, username, onLogout }) {
                 key={msg._id || index}
                 isOwn={msg.sender === username}
               >
-                {msg.sender !== username && (
-                  <SenderName>{msg.sender}</SenderName>
-                )}
-                {msg.isFile ? (
-                  <FileContent>
-                    {msg.fileData.type.startsWith('image/') ? (
-                      <img 
-                        src={msg.fileData.data} 
-                        alt={msg.fileData.name}
-                        style={{ maxWidth: '200px', maxHeight: '200px' }}
-                      />
-                    ) : (
-                      <a 
-                        href={msg.fileData.data}
-                        download={msg.fileData.name}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Download: {msg.fileData.name}
-                      </a>
-                    )}
-                  </FileContent>
-                ) : (
-                  msg.message
-                )}
-                <TimeStamp>
-                  {new Date(msg.timestamp).toLocaleTimeString()}
-                </TimeStamp>
-                {msg.sender === username && (
-                  <DeleteButton
-                    onClick={() => handleDeleteMessage(msg._id)}
-                  >
-                    <IoClose size={14} />
+                <MessageContent isOwn={msg.sender === username}>
+                  <MessageText>{msg.message}</MessageText>
+                  <TimeStamp>{new Date(msg.timestamp).toLocaleTimeString()}</TimeStamp>
+                  {msg.sender === username && (
+                    <TickIndicator>
+                      {msg.isRead ? "✓✓" : "✓"}
+                    </TickIndicator>
+                  )}
+                </MessageContent>
+                {msg.sender === username && !deletedMessages.has(msg._id) && (
+                  <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
+                    <IoClose />
                   </DeleteButton>
                 )}
               </MessageBubble>
@@ -582,17 +593,23 @@ function Chat({ socket, username, onLogout }) {
 }
 
 const ChatContainer = styled.div`
-  height: 100vh;
-  width: 100vw;
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   background: var(--bg-primary);
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
+  position: relative;
+
+  @media (max-width: 768px) {
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
 `;
 
 const Header = styled.header`
@@ -743,30 +760,6 @@ const MessagesContainer = styled.div`
   }
 `;
 
-const MessageContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  color: inherit;
-`;
-
-const SenderName = styled.div`
-  font-size: 0.8rem;
-  color: #a0a0a0;
-  margin-bottom: 0.2rem;
-`;
-
-const MessageText = styled.div`
-  word-break: break-word;
-  color: inherit;
-`;
-
-const TimeStamp = styled.div`
-  font-size: 0.7rem;
-  color: #a0a0a0;
-  text-align: right;
-  margin-top: 0.2rem;
-`;
-
 const MessageForm = styled.form`
   display: flex;
   align-items: center;
@@ -860,25 +853,15 @@ const MessagesArea = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
-              url('https://w0.peakpx.com/wallpaper/901/891/HD-wallpaper-pattern-black-dark-grey-shape-thumbnail.jpg');
-  background-repeat: repeat;
-  background-size: 200px;
+  background: var(--bg-primary);
   padding: 1rem;
   overflow-y: auto;
   position: relative;
+  padding-bottom: 80px; /* Space for input box */
 
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: var(--accent-color);
-    border-radius: 3px;
+  @media (max-width: 768px) {
+    height: calc(100vh - 120px); /* Adjust for header and input */
+    padding-bottom: 90px;
   }
 `;
 
@@ -1037,6 +1020,25 @@ const UserAvatar = styled.div`
 
 const FileContent = styled.div`
   margin-bottom: 0.5rem;
+`;
+
+const InputArea = styled.div`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-secondary);
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 1200px;
+  margin: 0 auto;
+  z-index: 100;
+
+  @media (max-width: 768px) {
+    padding: 10px 5px;
+  }
 `;
 
 export default Chat;
