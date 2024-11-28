@@ -115,23 +115,7 @@ function Chat({ socket, username, onLogout }) {
     });
 
     socket.on("private-message", (message) => {
-      setMessages(prevMessages => {
-        // Check if this message belongs to the current chat
-        const chatId = createChatId(username, message.sender);
-        const reverseChatId = createChatId(message.sender, username);
-        
-        if (message.chatId === chatId || message.chatId === reverseChatId) {
-          return [...prevMessages, message];
-        }
-        
-        // Store message in chat history for other chats
-        setChatHistory(prev => ({
-          ...prev,
-          [message.chatId]: [...(prev[message.chatId] || []), message]
-        }));
-        
-        return prevMessages;
-      });
+      setMessages(prev => [...prev, { ...message, isPrivate: true }]);
     });
 
     socket.on("message-history", (history) => {
@@ -225,13 +209,6 @@ function Chat({ socket, username, onLogout }) {
       socket.emit("get-messages");
     });
 
-    // Update the selected user's messages when switching chats
-    if (selectedUser) {
-      const chatId = createChatId(username, selectedUser);
-      const storedMessages = chatHistory[chatId] || [];
-      setMessages(storedMessages);
-    }
-
     return () => {
       socket.off("users-update");
       socket.off("chat-message");
@@ -245,7 +222,7 @@ function Chat({ socket, username, onLogout }) {
       socket.off("receive-file");
       socket.off("delete-failed");
     };
-  }, [socket, username, chatHistory]);
+  }, [socket, username]);
 
   useEffect(() => {
     if (selectedUser) {
