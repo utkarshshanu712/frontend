@@ -64,7 +64,7 @@ const MessageContent = styled.div`
   display: flex;
   flex-direction: column;
   color: inherit;
-  padding-right: 15px;
+  padding-right: 20px;
   margin-bottom: ${props => props.isOwn ? '12px' : '0'};
   position: relative;
 `;
@@ -536,12 +536,14 @@ function Chat({ socket, username, onLogout }) {
               >
                 <MessageContent isOwn={msg.sender === username}>
                   <MessageText>{msg.message}</MessageText>
-                  <TimeStamp>{new Date(msg.timestamp).toLocaleTimeString()}</TimeStamp>
-                  {msg.sender === username && (
-                    <TickIndicator>
-                      {msg.isRead ? "✓✓" : "✓"}
-                    </TickIndicator>
-                  )}
+                  <TimeStamp>
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                    {msg.sender === username && (
+                      <TickIndicator>
+                        {msg.readBy?.includes(msg.receiver) ? "✓✓" : "✓"}
+                      </TickIndicator>
+                    )}
+                  </TimeStamp>
                 </MessageContent>
                 {msg.sender === username && !deletedMessages.has(msg._id) && (
                   <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
