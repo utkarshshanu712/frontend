@@ -7,9 +7,12 @@ import {
   IoClose,
   IoMenu,
   IoPeople,
+  IoCall,
+  IoVideocam,
 } from "react-icons/io5";
 import PasswordChangeModal from "./PasswordChangeModal";
 import logoImage from "../assets/orig_600x600-removebg-preview.png";
+import VideoCall from './VideoCall';
 
 const createChatId = (user1, user2) => {
   return [user1, user2].sort().join("_");
@@ -72,6 +75,8 @@ function Chat({ socket, username, onLogout }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [chatHistory, setChatHistory] = useState({});
   const [activeSection, setActiveSection] = useState("private"); // 'private' or 'group'
+  const [isInCall, setIsInCall] = useState(false);
+  const [callRoomName, setCallRoomName] = useState('');
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -457,147 +462,205 @@ function Chat({ socket, username, onLogout }) {
     </UserList>
   );
 
+  const handleAudioCall = () => {
+    if (selectedUser) {
+      socket.emit('call-user', {
+        target: selectedUser,
+        callType: 'audio'
+      });
+    }
+  };
+
+  const handleVideoCall = () => {
+    if (selectedUser) {
+      socket.emit('call-user', {
+        target: selectedUser,
+        callType: 'video'
+      });
+    }
+  };
+
+  useEffect(() => {
+    socket.on('incoming-call', ({ from, roomName, callType }) => {
+      if (window.confirm(`Incoming ${callType} call from ${from}`)) {
+        socket.emit('call-accepted', { roomName, target: from });
+        setCallRoomName(roomName);
+        setIsInCall(true);
+      } else {
+        socket.emit('call-rejected', { target: from });
+      }
+    });
+
+    socket.on('call-joined', ({ roomName }) => {
+      setCallRoomName(roomName);
+      setIsInCall(true);
+    });
+
+    socket.on('call-ended', () => {
+      setIsInCall(false);
+      setCallRoomName('');
+    });
+
+    return () => {
+      socket.off('incoming-call');
+      socket.off('call-joined');
+      socket.off('call-ended');
+    };
+  }, [socket]);
+
   return (
-    <ChatContainer>
-      <Header>
-        <HeaderLogo src={logoImage} alt="Friend Chat Logo" />
-        <UserInfo>
-          <HamburgerButton onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-            <IoMenu />
-          </HamburgerButton>
-          <ProfilePicContainer>
-            {profilePic ? (
-              <ProfilePic src={profilePic} alt={username} />
-            ) : (
-              <DefaultProfilePic>{username[0].toUpperCase()}</DefaultProfilePic>
-            )}
-            <CameraOverlay onClick={() => profilePicInputRef.current?.click()}>
-              <IoCamera />
-            </CameraOverlay>
-            <input
-              type="file"
-              ref={profilePicInputRef}
-              style={{ display: "none" }}
-              onChange={handleProfilePicChange}
-              accept="image/*"
-            />
-          </ProfilePicContainer>
-          <Username>{username}</Username>
-          {selectedUser && (
-            <PrivateChatIndicator>
-              Chatting with {selectedUser}
-              <CloseButton onClick={() => setSelectedUser(null)}>
-                <IoClose />
-              </CloseButton>
-            </PrivateChatIndicator>
-          )}
-        </UserInfo>
-        <ButtonGroup>
-          <Button onClick={() => setShowPasswordChange(true)}>
-            Change Password
-          </Button>
-          <Button onClick={onLogout}>Logout</Button>
-        </ButtonGroup>
-      </Header>
-
-      <ChatLayout isSidebarOpen={isSidebarOpen}>
-        <Sidebar isOpen={isSidebarOpen}>
-          <SidebarHeader>
-            <UserProfile>
-              <UserAvatar hasImage={!!profilePic}>
-                {profilePic ? (
-                  <img src={profilePic} alt={username} />
-                ) : (
-                  username[0].toUpperCase()
-                )}
-              </UserAvatar>
-              <span>{username}</span>
-            </UserProfile>
-          </SidebarHeader>
-          {renderUserList()}
-        </Sidebar>
-
-        <MessagesArea isSidebarOpen={isSidebarOpen}>
-          <MessagesContainer>
-            {displayMessages.map((msg, index) => (
-              <MessageBubble
-                key={msg._id || index}
-                isOwn={msg.sender === username}
-              >
-                {msg.sender !== username && (
-                  <SenderName>{msg.sender}</SenderName>
-                )}
-                {msg.isFile ? (
-                  <FileContent>
-                    {msg.fileData.type.startsWith("image/") ? (
-                      <img
-                        src={msg.fileData.data}
-                        alt={msg.fileData.name}
-                        style={{ maxWidth: "200px", maxHeight: "200px" }}
-                      />
-                    ) : (
-                      <a
-                        href={msg.fileData.data}
-                        download={msg.fileData.name}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Download: {msg.fileData.name}
-                      </a>
-                    )}
-                  </FileContent>
-                ) : (
-                  msg.message
-                )}
-                <TimeStamp>
-                  {new Date(msg.timestamp).toLocaleTimeString()}
-                </TimeStamp>
-                {msg.sender === username && (
-                  <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
-                    <IoClose size={14} />
-                  </DeleteButton>
-                )}
-              </MessageBubble>
-            ))}
-            <div ref={messagesEndRef} />
-          </MessagesContainer>
-
-          <MessageForm onSubmit={sendMessage}>
-            <MessageInput
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={`Message ${selectedUser || "everyone"}...`}
-            />
-            <AttachButton onClick={() => fileInputRef.current.click()}>
-              <IoAttach />
-            </AttachButton>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              style={{ display: "none" }}
-            />
-            <SendButton type="submit">
-              <IoSend />
-            </SendButton>
-          </MessageForm>
-        </MessagesArea>
-      </ChatLayout>
-
-      {showPasswordChange && (
-        <PasswordChangeModal
-          onClose={() => setShowPasswordChange(false)}
-          onSubmit={(oldPassword, newPassword) => {
-            socket.emit("change-password", {
-              username,
-              oldPassword,
-              newPassword,
-            });
+    <>
+      {isInCall && (
+        <VideoCall
+          roomName={callRoomName}
+          username={username}
+          onClose={() => {
+            setIsInCall(false);
+            setCallRoomName('');
           }}
         />
       )}
-    </ChatContainer>
+      <ChatContainer>
+        <Header>
+          <HeaderLogo src={logoImage} alt="Friend Chat Logo" />
+          <UserInfo>
+            <HamburgerButton onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+              <IoMenu />
+            </HamburgerButton>
+            <ProfilePicContainer>
+              {profilePic ? (
+                <ProfilePic src={profilePic} alt={username} />
+              ) : (
+                <DefaultProfilePic>{username[0].toUpperCase()}</DefaultProfilePic>
+              )}
+              <CameraOverlay onClick={() => profilePicInputRef.current?.click()}>
+                <IoCamera />
+              </CameraOverlay>
+              <input
+                type="file"
+                ref={profilePicInputRef}
+                style={{ display: "none" }}
+                onChange={handleProfilePicChange}
+                accept="image/*"
+              />
+            </ProfilePicContainer>
+            <Username>{username}</Username>
+            {selectedUser && (
+              <PrivateChatIndicator>
+                Chatting with {selectedUser}
+                <CloseButton onClick={() => setSelectedUser(null)}>
+                  <IoClose />
+                </CloseButton>
+              </PrivateChatIndicator>
+            )}
+          </UserInfo>
+          <ButtonGroup>
+            <Button onClick={() => setShowPasswordChange(true)}>
+              Change Password
+            </Button>
+            <Button onClick={onLogout}>Logout</Button>
+          </ButtonGroup>
+        </Header>
+
+        <ChatLayout isSidebarOpen={isSidebarOpen}>
+          <Sidebar isOpen={isSidebarOpen}>
+            <SidebarHeader>
+              <UserProfile>
+                <UserAvatar hasImage={!!profilePic}>
+                  {profilePic ? (
+                    <img src={profilePic} alt={username} />
+                  ) : (
+                    username[0].toUpperCase()
+                  )}
+                </UserAvatar>
+                <span>{username}</span>
+              </UserProfile>
+            </SidebarHeader>
+            {renderUserList()}
+          </Sidebar>
+
+          <MessagesArea isSidebarOpen={isSidebarOpen}>
+            <MessagesContainer>
+              {displayMessages.map((msg, index) => (
+                <MessageBubble
+                  key={msg._id || index}
+                  isOwn={msg.sender === username}
+                >
+                  {msg.sender !== username && (
+                    <SenderName>{msg.sender}</SenderName>
+                  )}
+                  {msg.isFile ? (
+                    <FileContent>
+                      {msg.fileData.type.startsWith("image/") ? (
+                        <img
+                          src={msg.fileData.data}
+                          alt={msg.fileData.name}
+                          style={{ maxWidth: "200px", maxHeight: "200px" }}
+                        />
+                      ) : (
+                        <a
+                          href={msg.fileData.data}
+                          download={msg.fileData.name}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Download: {msg.fileData.name}
+                        </a>
+                      )}
+                    </FileContent>
+                  ) : (
+                    msg.message
+                  )}
+                  <TimeStamp>
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  </TimeStamp>
+                  {msg.sender === username && (
+                    <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
+                      <IoClose size={14} />
+                    </DeleteButton>
+                  )}
+                </MessageBubble>
+              ))}
+              <div ref={messagesEndRef} />
+            </MessagesContainer>
+
+            <MessageForm onSubmit={sendMessage}>
+              <MessageInput
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={`Message ${selectedUser || "everyone"}...`}
+              />
+              <AttachButton onClick={() => fileInputRef.current.click()}>
+                <IoAttach />
+              </AttachButton>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                style={{ display: "none" }}
+              />
+              <SendButton type="submit">
+                <IoSend />
+              </SendButton>
+            </MessageForm>
+          </MessagesArea>
+        </ChatLayout>
+
+        {showPasswordChange && (
+          <PasswordChangeModal
+            onClose={() => setShowPasswordChange(false)}
+            onSubmit={(oldPassword, newPassword) => {
+              socket.emit("change-password", {
+                username,
+                oldPassword,
+                newPassword,
+              });
+            }}
+          />
+        )}
+      </ChatContainer>
+    </>
   );
 }
 
