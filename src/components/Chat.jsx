@@ -101,7 +101,45 @@ const MessageInput = styled.textarea`
   }
 `;
 
-// Export the styled components to be used in the main component
+function Chat({ socket, username, onLogout }) {
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const messagesEndRef = useRef(null);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  // Add your existing socket event handlers and other functions here
+
+  return (
+    <ChatContainer>
+      <Sidebar isOpen={isSidebarOpen}>
+        {/* Your sidebar content */}
+      </Sidebar>
+      
+      <MainContent>
+        <MessagesContainer ref={messagesEndRef}>
+          {/* Your messages rendering */}
+        </MessagesContainer>
+
+        <InputArea isSidebarOpen={isSidebarOpen}>
+          <MessageInput
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type a message"
+          />
+          {/* Send button and other controls */}
+        </InputArea>
+      </MainContent>
+    </ChatContainer>
+  );
+}
+
+// Keep the exports
 export {
   ChatContainer,
   Sidebar,
@@ -111,5 +149,4 @@ export {
   MessageInput
 };
 
-// Keep the default export for the Chat component
 export default Chat;
