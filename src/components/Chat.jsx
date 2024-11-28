@@ -13,6 +13,7 @@ import {
 import PasswordChangeModal from "./PasswordChangeModal";
 import logoImage from "../assets/orig_600x600-removebg-preview.png";
 import VideoCall from './VideoCall';
+import ChatHeader from './ChatHeader';
 
 const createChatId = (user1, user2) => {
   return [user1, user2].sort().join("_");
@@ -482,7 +483,7 @@ function Chat({ socket, username, onLogout }) {
 
   useEffect(() => {
     socket.on('incoming-call', ({ from, roomName, callType }) => {
-      if (window.confirm(`Incoming ${callType} call from ${from}`)) {
+      if (window.confirm(`Incoming ${callType} call from ${from}. Accept?`)) {
         socket.emit('call-accepted', { roomName, target: from });
         setCallRoomName(roomName);
         setIsInCall(true);
@@ -497,8 +498,8 @@ function Chat({ socket, username, onLogout }) {
     });
 
     socket.on('call-ended', () => {
-      setIsInCall(false);
       setCallRoomName('');
+      setIsInCall(false);
     });
 
     return () => {

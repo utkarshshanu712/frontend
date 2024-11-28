@@ -71,9 +71,17 @@ const CallButton = styled.button`
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   
   &:hover {
     background: var(--hover-color);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
   }
 `;
 
