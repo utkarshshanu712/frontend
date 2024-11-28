@@ -88,33 +88,13 @@ function App() {
 
 const AppContainer = styled.div`
   height: 100vh;
-  width: 100vw;
-  max-width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
   background-color: var(--bg-primary);
-  padding: 0;
-  margin: 0;
-  
-  @media (min-width: 1024px) {
-    padding: 20px;
-    & > * {
-      width: 100%;
-      max-width: 1400px;
-      height: calc(100vh - 40px);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-  }
   
   @media (max-width: 768px) {
     padding: 0;
-    height: 100vh;
-    & > * {
-      width: 100%;
-      height: 100%;
-    }
   }
 `;
 
