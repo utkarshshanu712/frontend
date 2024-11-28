@@ -1,41 +1,18 @@
 import styled from 'styled-components';
 import { IoCall, IoVideocam } from 'react-icons/io5';
-import { useState, useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
 
 const ChatHeader = ({ selectedUser, onAudioCall, onVideoCall }) => {
-  const [callDuration, setCallDuration] = useState(0);
-  const timerRef = useRef(null);
-  const [isInCall, setIsInCall] = useState(false);
-
-  useEffect(() => {
-    if (isInCall) {
-      timerRef.current = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        setCallDuration(0);
-      }
-    };
-  }, [isInCall]);
-
   return (
     <HeaderContainer>
       <UserInfo>
         <span>{selectedUser}</span>
-        {isInCall && (
-          <CallTimer>
-            {Math.floor(callDuration / 60)}:{(callDuration % 60).toString().padStart(2, '0')}
-          </CallTimer>
-        )}
       </UserInfo>
       <CallButtons>
-        <CallButton onClick={onAudioCall}>
+        <CallButton onClick={onAudioCall} aria-label="Audio Call">
           <IoCall />
         </CallButton>
-        <CallButton onClick={onVideoCall}>
+        <CallButton onClick={onVideoCall} aria-label="Video Call">
           <IoVideocam />
         </CallButton>
       </CallButtons>
@@ -60,25 +37,25 @@ const UserInfo = styled.div`
 
 const CallButtons = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
 `;
 
 const CallButton = styled.button`
-  background: var(--bg-secondary);
-  border: 1px solid var(--accent-color);
-  color: var(--accent-color);
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 0.5rem;
+  background: var(--accent-color);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
   
   &:hover {
-    background: var(--hover-color);
     transform: scale(1.1);
+    background: var(--hover-color);
   }
 
   svg {
@@ -87,10 +64,10 @@ const CallButton = styled.button`
   }
 `;
 
-const CallTimer = styled.span`
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-left: 1rem;
-`;
+ChatHeader.propTypes = {
+  selectedUser: PropTypes.string.isRequired,
+  onAudioCall: PropTypes.func.isRequired,
+  onVideoCall: PropTypes.func.isRequired
+};
 
 export default ChatHeader; 
