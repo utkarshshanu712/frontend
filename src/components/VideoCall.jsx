@@ -49,21 +49,16 @@ const VideoCall = ({ roomName, onClose, username }) => {
 
       jitsiApiRef.current = new window.JitsiMeetExternalAPI(domain, options);
 
-      const handleError = (error) => {
-        console.error('Jitsi error:', error);
-        alert('Failed to initialize call. Please try again.');
-        onClose();
-      };
-
       jitsiApiRef.current.addEventListeners({
         readyToClose: onClose,
         participantLeft: onClose,
         videoConferenceLeft: onClose,
-        error: handleError
-      });
-
-      jitsiApiRef.current.addEventListener('videoConferenceJoined', () => {
-        setIsLoading(false);
+        videoConferenceJoined: () => setIsLoading(false),
+        error: (error) => {
+          console.error('Jitsi error:', error);
+          alert('Failed to initialize call. Please try again.');
+          onClose();
+        }
       });
     };
 
@@ -101,11 +96,11 @@ const LoadingOverlay = styled.div`
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.8);
-  color: var(--text-primary);
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   z-index: 1001;
 `;
 
