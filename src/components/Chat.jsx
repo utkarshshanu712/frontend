@@ -760,7 +760,7 @@ const MessagesContainer = styled.div`
   gap: 0.5rem;
 
   @media (max-width: 768px) {
-    padding-bottom: 60px;
+    padding-bottom: 80px; // Increased padding to prevent hiding behind the message writing area
     height: calc(100vh - 130px);
   }
 `;
