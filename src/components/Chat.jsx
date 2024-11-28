@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
-import { IoSend, IoAttach, IoCamera, IoClose, IoMenu, IoPeople, IoCheckmarkOutline, IoCheckmarkDoneOutline, IoArrowBack } from "react-icons/io5";
+import { IoSend, IoAttach, IoCamera, IoClose, IoMenu, IoPeople } from "react-icons/io5";
 import PasswordChangeModal from "./PasswordChangeModal";
 import logoImage from '../assets/orig_600x600-removebg-preview.png';
 
@@ -42,87 +42,10 @@ const MessageBubble = styled.div`
   background: ${props => props.isOwn ? 'var(--message-out)' : 'var(--message-in)'};
   align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
 
-  .message-meta {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 4px;
-    font-size: 0.7rem;
-    color: var(--text-secondary);
-    margin-top: 4px;
-  }
-
-  .read-receipt {
-    display: flex;
-    align-items: center;
-  }
-
   &:hover ${DeleteButton} {
     opacity: 1;
     visibility: visible;
   }
-`;
-
-const ReadReceipt = ({ isRead }) => {
-  return (
-    <div className="read-receipt">
-      {isRead ? (
-        <IoCheckmarkDoneOutline style={{ color: '#34B7F1' }} />
-      ) : (
-        <IoCheckmarkOutline style={{ color: '#8696a0' }} />
-      )}
-    </div>
-  );
-};
-
-const UserStatus = ({ selectedUser, socket }) => {
-  const [lastActive, setLastActive] = useState(null);
-  const [isOnline, setIsOnline] = useState(false);
-
-  useEffect(() => {
-    if (!selectedUser) return;
-
-    // Get initial status
-    fetch(`${import.meta.env.VITE_API_URL}/user/${selectedUser}/status`)
-      .then(res => res.json())
-      .then(data => {
-        setIsOnline(data.isOnline);
-        setLastActive(data.lastActive);
-      });
-
-    // Listen for status updates
-    socket.on('user-status-update', ({ username, status }) => {
-      if (username === selectedUser) {
-        setIsOnline(status.isOnline);
-        setLastActive(status.lastActive);
-      }
-    });
-
-    return () => socket.off('user-status-update');
-  }, [selectedUser, socket]);
-
-  const formatLastActive = (timestamp) => {
-    if (!timestamp) return '';
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    
-    if (diff < 60000) return 'just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)} min ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
-    return date.toLocaleDateString();
-  };
-
-  return (
-    <StatusText>
-      {isOnline ? 'online' : lastActive ? `last seen ${formatLastActive(lastActive)}` : ''}
-    </StatusText>
-  );
-};
-
-const StatusText = styled.span`
-  font-size: 0.75rem;
-  color: var(--text-secondary);
 `;
 
 function Chat({ socket, username, onLogout }) {
@@ -141,7 +64,6 @@ function Chat({ socket, username, onLogout }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [chatHistory, setChatHistory] = useState({});
   const [activeSection, setActiveSection] = useState('private'); // 'private' or 'group'
-  const [fileToSend, setFileToSend] = useState(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -287,34 +209,6 @@ function Chat({ socket, username, onLogout }) {
       socket.emit("get-messages");
     });
 
-    socket.on("receive-private-message", (data) => {
-      setMessages(prev => [...prev, { ...data, isRead: false }]);
-      
-      // Mark message as read if chat is open
-      if (selectedUser === data.sender) {
-        socket.emit("mark-message-read", { messageId: data._id });
-      }
-    });
-
-    socket.on("message-read", ({ messageId, readAt }) => {
-      setMessages(prev => prev.map(msg => 
-        msg._id === messageId ? { ...msg, isRead: true, readAt } : msg
-      ));
-    });
-
-    socket.on("message-sent", (confirmedMessage) => {
-      setMessages(prev => prev.map(msg => 
-        msg.timestamp === confirmedMessage.timestamp ? 
-        { ...confirmedMessage, isRead: false } : 
-        msg
-      ));
-    });
-
-    socket.on("message-error", ({ error }) => {
-      console.error("Message error:", error);
-      // Optionally show error to user
-    });
-
     return () => {
       socket.off("users-update");
       socket.off("chat-message");
@@ -327,10 +221,6 @@ function Chat({ socket, username, onLogout }) {
       socket.off("receive-message");
       socket.off("receive-file");
       socket.off("delete-failed");
-      socket.off("receive-private-message");
-      socket.off("message-read");
-      socket.off("message-sent");
-      socket.off("message-error");
     };
   }, [socket, username]);
 
@@ -361,48 +251,22 @@ function Chat({ socket, username, onLogout }) {
     }
   }, [selectedUser, username]);
 
-  const sendMessage = async (e) => {
+  const sendMessage = (e) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    if (message.trim()) {
+      const chatId = selectedUser ? createChatId(username, selectedUser) : 'broadcast';
+      const messageData = {
+        sender: username,
+        receiver: selectedUser,
+        message: message.trim(),
+        chatId,
+        timestamp: new Date()
+      };
 
-    const messageData = {
-      sender: username,
-      receiver: selectedUser,
-      message: message.trim(),
-      chatId: createChatId(username, selectedUser),
-      timestamp: new Date()
-    };
-
-    socket.emit("send-private-message", messageData);
-    setMessage("");
+      socket.emit("send-message", messageData);
+      setMessage("");
+    }
   };
-
-  useEffect(() => {
-    socket.on("message-sent", (data) => {
-      setMessages(prev => [...prev, data]);
-    });
-
-    socket.on("receive-private-message", (data) => {
-      setMessages(prev => [...prev, data]);
-      
-      // Mark as read if chat is open with sender
-      if (selectedUser === data.sender) {
-        socket.emit("mark-message-read", { messageId: data._id });
-      }
-    });
-
-    socket.on("message-read", ({ messageId }) => {
-      setMessages(prev => prev.map(msg => 
-        msg._id === messageId ? { ...msg, isRead: true } : msg
-      ));
-    });
-
-    return () => {
-      socket.off("message-sent");
-      socket.off("receive-private-message");
-      socket.off("message-read");
-    };
-  }, [socket, selectedUser, username]);
 
   const handleDeleteMessage = (messageId) => {
     socket.emit("delete-message", { messageId });
@@ -571,21 +435,6 @@ function Chat({ socket, username, onLogout }) {
     </UserList>
   );
 
-  const renderMessage = (msg) => (
-    <MessageBubble key={msg._id} isOwn={msg.sender === username}>
-      {msg.message}
-      <div className="message-meta">
-        <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
-        {msg.sender === username && <ReadReceipt isRead={msg.isRead} />}
-      </div>
-      {msg.sender === username && (
-        <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
-          <IoClose size={14} />
-        </DeleteButton>
-      )}
-    </MessageBubble>
-  );
-
   return (
     <ChatContainer>
       <Header>
@@ -648,7 +497,48 @@ function Chat({ socket, username, onLogout }) {
 
         <MessagesArea isSidebarOpen={isSidebarOpen}>
           <MessagesContainer>
-            {displayMessages.map(renderMessage)}
+            {displayMessages.map((msg, index) => (
+              <MessageBubble
+                key={msg._id || index}
+                isOwn={msg.sender === username}
+              >
+                {msg.sender !== username && (
+                  <SenderName>{msg.sender}</SenderName>
+                )}
+                {msg.isFile ? (
+                  <FileContent>
+                    {msg.fileData.type.startsWith('image/') ? (
+                      <img 
+                        src={msg.fileData.data} 
+                        alt={msg.fileData.name}
+                        style={{ maxWidth: '200px', maxHeight: '200px' }}
+                      />
+                    ) : (
+                      <a 
+                        href={msg.fileData.data}
+                        download={msg.fileData.name}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Download: {msg.fileData.name}
+                      </a>
+                    )}
+                  </FileContent>
+                ) : (
+                  msg.message
+                )}
+                <TimeStamp>
+                  {new Date(msg.timestamp).toLocaleTimeString()}
+                </TimeStamp>
+                {msg.sender === username && (
+                  <DeleteButton
+                    onClick={() => handleDeleteMessage(msg._id)}
+                  >
+                    <IoClose size={14} />
+                  </DeleteButton>
+                )}
+              </MessageBubble>
+            ))}
             <div ref={messagesEndRef} />
           </MessagesContainer>
 
@@ -1147,20 +1037,6 @@ const UserAvatar = styled.div`
 
 const FileContent = styled.div`
   margin-bottom: 0.5rem;
-`;
-
-const StatusContainer = styled.div`
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin-top: 4px;
-`;
-
-const OnlineStatus = styled.span`
-  color: var(--accent-color);
-`;
-
-const LastActiveStatus = styled.span`
-  color: var(--text-secondary);
 `;
 
 export default Chat;
