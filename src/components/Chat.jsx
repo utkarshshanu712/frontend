@@ -1,11 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
-import { IoSend, IoAttach, IoCamera, IoClose, IoMenu, IoPeople } from "react-icons/io5";
+import {
+  IoSend,
+  IoAttach,
+  IoCamera,
+  IoClose,
+  IoMenu,
+  IoPeople,
+} from "react-icons/io5";
 import PasswordChangeModal from "./PasswordChangeModal";
-import logoImage from '../assets/orig_600x600-removebg-preview.png';
+import logoImage from "../assets/orig_600x600-removebg-preview.png";
 
 const createChatId = (user1, user2) => {
-  return [user1, user2].sort().join('_');
+  return [user1, user2].sort().join("_");
 };
 
 const DeleteButton = styled.button`
@@ -39,8 +46,9 @@ const MessageBubble = styled.div`
   max-width: 70%;
   word-wrap: break-word;
   margin: 0.5rem 0;
-  background: ${props => props.isOwn ? 'var(--message-out)' : 'var(--message-in)'};
-  align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
+  background: ${(props) =>
+    props.isOwn ? "var(--message-out)" : "var(--message-in)"};
+  align-self: ${(props) => (props.isOwn ? "flex-end" : "flex-start")};
 
   &:hover ${DeleteButton} {
     opacity: 1;
@@ -63,18 +71,18 @@ function Chat({ socket, username, onLogout }) {
   const profilePicInputRef = useRef(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [chatHistory, setChatHistory] = useState({});
-  const [activeSection, setActiveSection] = useState('private'); // 'private' or 'group'
+  const [activeSection, setActiveSection] = useState("private"); // 'private' or 'group'
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messagesEndRef.current) {
       const smoothScroll = () => {
-        messagesEndRef.current.scrollIntoView({ 
+        messagesEndRef.current.scrollIntoView({
           behavior: "smooth",
-          block: "end"
+          block: "end",
         });
       };
-      
+
       // Small delay to ensure content is rendered
       setTimeout(smoothScroll, 100);
     }
@@ -89,33 +97,33 @@ function Chat({ socket, username, onLogout }) {
 
     // Fetch all users
     fetch(`${import.meta.env.VITE_API_URL}/users`)
-      .then(res => res.json())
-      .then(allUsers => {
+      .then((res) => res.json())
+      .then((allUsers) => {
         // Filter out current user and ensure all users have required properties
         const filteredUsers = allUsers
-          .filter(user => user && user.username && user.username !== username)
-          .map(user => ({
+          .filter((user) => user && user.username && user.username !== username)
+          .map((user) => ({
             ...user,
-            profilePic: user.profilePic || null
+            profilePic: user.profilePic || null,
           }));
         setUsers(filteredUsers);
       })
-      .catch(err => {
-        console.error('Error fetching users:', err);
+      .catch((err) => {
+        console.error("Error fetching users:", err);
         setUsers([]); // Set empty array on error
       });
 
     // Handle online users updates
     socket.on("users-update", (updatedUsers) => {
-      setOnlineUsers(updatedUsers.filter(user => user !== username));
+      setOnlineUsers(updatedUsers.filter((user) => user !== username));
     });
 
     socket.on("chat-message", (message) => {
-      setMessages(prev => [...prev, message]);
+      setMessages((prev) => [...prev, message]);
     });
 
     socket.on("private-message", (message) => {
-      setMessages(prev => [...prev, { ...message, isPrivate: true }]);
+      setMessages((prev) => [...prev, { ...message, isPrivate: true }]);
     });
 
     socket.on("message-history", (history) => {
@@ -133,12 +141,12 @@ function Chat({ socket, username, onLogout }) {
 
     socket.on("message-deleted", ({ messageId }) => {
       // Remove the message completely from the messages array
-      setMessages(prevMessages => 
-        prevMessages.filter(msg => msg._id !== messageId)
+      setMessages((prevMessages) =>
+        prevMessages.filter((msg) => msg._id !== messageId)
       );
-      
+
       // Clean up any references in deletedMessages set
-      setDeletedMessages(prev => {
+      setDeletedMessages((prev) => {
         const newSet = new Set(prev);
         newSet.delete(messageId);
         return newSet;
@@ -155,41 +163,44 @@ function Chat({ socket, username, onLogout }) {
       }
     });
 
-    socket.on("user-profile-updated", ({ username: updatedUser, profilePic }) => {
-      // Update the user's profile pic in the UI
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.username === updatedUser ? { ...user, profilePic } : user
-        )
-      );
-    });
+    socket.on(
+      "user-profile-updated",
+      ({ username: updatedUser, profilePic }) => {
+        // Update the user's profile pic in the UI
+        setUsers((prevUsers) =>
+          prevUsers.map((user) =>
+            user.username === updatedUser ? { ...user, profilePic } : user
+          )
+        );
+      }
+    );
 
     socket.on("receive-message", (message) => {
       if (message.receiver) {
         // Private message
         const chatId = createChatId(message.sender, message.receiver);
-        setChatHistory(prev => {
+        setChatHistory((prev) => {
           // Check if message already exists
           const existingMessages = prev[chatId] || [];
-          const exists = existingMessages.some(m => m._id === message._id);
+          const exists = existingMessages.some((m) => m._id === message._id);
           if (exists) return prev;
-          
+
           return {
             ...prev,
-            [chatId]: [...existingMessages, message]
+            [chatId]: [...existingMessages, message],
           };
         });
       } else {
         // Broadcast message
-        setMessages(prev => {
-          const exists = prev.some(m => m._id === message._id);
+        setMessages((prev) => {
+          const exists = prev.some((m) => m._id === message._id);
           return exists ? prev : [...prev, message];
         });
       }
     });
 
     socket.on("receive-file", (fileMessage) => {
-      setMessages(prev => [...prev, fileMessage]);
+      setMessages((prev) => [...prev, fileMessage]);
     });
 
     // Remove duplicate message-history listener
@@ -227,15 +238,15 @@ function Chat({ socket, username, onLogout }) {
   useEffect(() => {
     if (selectedUser) {
       const chatId = createChatId(username, selectedUser);
-      
+
       // Load chat history if not already loaded
       if (!chatHistory[chatId]) {
         fetch(`${import.meta.env.VITE_API_URL}/api/messages/${chatId}`)
-          .then(res => res.json())
-          .then(messages => {
-            setChatHistory(prev => ({
+          .then((res) => res.json())
+          .then((messages) => {
+            setChatHistory((prev) => ({
               ...prev,
-              [chatId]: messages
+              [chatId]: messages,
             }));
           })
           .catch(console.error);
@@ -245,7 +256,10 @@ function Chat({ socket, username, onLogout }) {
       return () => {
         if (chatHistory[chatId]) {
           // Save current chat history to localStorage
-          localStorage.setItem(`chat_history_${chatId}`, JSON.stringify(chatHistory[chatId]));
+          localStorage.setItem(
+            `chat_history_${chatId}`,
+            JSON.stringify(chatHistory[chatId])
+          );
         }
       };
     }
@@ -254,13 +268,15 @@ function Chat({ socket, username, onLogout }) {
   const sendMessage = (e) => {
     e.preventDefault();
     if (message.trim()) {
-      const chatId = selectedUser ? createChatId(username, selectedUser) : 'broadcast';
+      const chatId = selectedUser
+        ? createChatId(username, selectedUser)
+        : "broadcast";
       const messageData = {
         sender: username,
         receiver: selectedUser,
         message: message.trim(),
         chatId,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       socket.emit("send-message", messageData);
@@ -270,15 +286,15 @@ function Chat({ socket, username, onLogout }) {
 
   const handleDeleteMessage = (messageId) => {
     socket.emit("delete-message", { messageId });
-    
+
     if (selectedUser) {
       const chatId = createChatId(username, selectedUser);
-      setChatHistory(prev => ({
+      setChatHistory((prev) => ({
         ...prev,
-        [chatId]: prev[chatId].filter(msg => msg._id !== messageId)
+        [chatId]: prev[chatId].filter((msg) => msg._id !== messageId),
       }));
     } else {
-      setMessages(prev => prev.filter(msg => msg._id !== messageId));
+      setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
     }
   };
 
@@ -288,41 +304,41 @@ function Chat({ socket, username, onLogout }) {
 
     // Check file size (limit to 2MB for profile pics)
     if (file.size > 2 * 1024 * 1024) {
-      alert('Profile picture must be less than 2MB');
+      alert("Profile picture must be less than 2MB");
       return;
     }
 
     // Verify it's an image
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
       return;
     }
 
     const reader = new FileReader();
     reader.onload = async (event) => {
       const profilePicData = event.target.result;
-      socket.emit('update-profile-pic', {
+      socket.emit("update-profile-pic", {
         username,
-        profilePic: profilePicData
+        profilePic: profilePicData,
       });
     };
     reader.readAsDataURL(file);
-    
+
     // Clear the input
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const validateFileType = (file) => {
     const allowedTypes = [
-      'image/',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      "image/",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ];
-    return allowedTypes.some(type => file.type.startsWith(type));
+    return allowedTypes.some((type) => file.type.startsWith(type));
   };
 
   const handleFileUpload = async (e) => {
@@ -330,13 +346,15 @@ function Chat({ socket, username, onLogout }) {
     if (!file) return;
 
     if (!validateFileType(file)) {
-      alert('Invalid file type. Please upload images, PDFs, Word documents, Excel sheets, or text files.');
+      alert(
+        "Invalid file type. Please upload images, PDFs, Word documents, Excel sheets, or text files."
+      );
       return;
     }
 
     // Check file size (limit to 50MB)
     if (file.size > 50 * 1024 * 1024) {
-      alert('File size must be less than 50MB');
+      alert("File size must be less than 50MB");
       return;
     }
 
@@ -346,10 +364,12 @@ function Chat({ socket, username, onLogout }) {
         name: file.name,
         type: file.type,
         data: event.target.result,
-        size: file.size
+        size: file.size,
       };
 
-      const chatId = selectedUser ? createChatId(username, selectedUser) : 'broadcast';
+      const chatId = selectedUser
+        ? createChatId(username, selectedUser)
+        : "broadcast";
       const messageData = {
         sender: username,
         receiver: selectedUser,
@@ -357,69 +377,71 @@ function Chat({ socket, username, onLogout }) {
         isFile: true,
         fileData: fileData,
         chatId,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
-      socket.emit('send-message', messageData);
+      socket.emit("send-message", messageData);
     };
     reader.readAsDataURL(file);
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage(e);
     }
   };
 
   const displayMessages = selectedUser
-    ? (chatHistory[[username, selectedUser].sort().join('_')] || [])
-    : messages.filter(msg => !msg.receiver);
+    ? chatHistory[[username, selectedUser].sort().join("_")] || []
+    : messages.filter((msg) => !msg.receiver);
 
   const renderUserList = () => (
     <UserList>
       <SectionToggle>
-        <button 
-          className={activeSection === 'private' ? 'active' : ''} 
-          onClick={() => setActiveSection('private')}
+        <button
+          className={activeSection === "private" ? "active" : ""}
+          onClick={() => setActiveSection("private")}
         >
           Private Chats
         </button>
-        <button 
-          className={activeSection === 'group' ? 'active' : ''} 
-          onClick={() => setActiveSection('group')}
+        <button
+          className={activeSection === "group" ? "active" : ""}
+          onClick={() => setActiveSection("group")}
         >
           Group Chats
         </button>
       </SectionToggle>
 
-      {activeSection === 'private' && (
+      {activeSection === "private" && (
         <UserListSection>
-          {users.map(user => (
-            <UserItem 
-              key={user.username} 
+          {users.map((user) => (
+            <UserItem
+              key={user.username}
               onClick={() => setSelectedUser(user.username)}
               active={selectedUser === user.username}
             >
-              <UserAvatar 
+              <UserAvatar
                 hasImage={!!user.profilePic}
                 isOnline={onlineUsers.includes(user.username)}
                 profilePic={user.profilePic}
               >
-                {!user.profilePic && user.username && user.username[0].toUpperCase()}
+                {!user.profilePic &&
+                  user.username &&
+                  user.username[0].toUpperCase()}
               </UserAvatar>
               <div>
                 <UserName>{user.username}</UserName>
                 <LastMessage>
-                  {onlineUsers.includes(user.username) ? 'Online' : 'Offline'}
+                  {onlineUsers.includes(user.username) ? "Online" : "Offline"}
                 </LastMessage>
               </div>
             </UserItem>
           ))}
         </UserListSection>
       )}
-      
-      {activeSection === 'group' && (
+
+      {activeSection === "group" && (
         <GroupList>
           <GroupItem onClick={() => setSelectedUser(null)}>
             <UserAvatar hasImage={false}>
@@ -455,7 +477,7 @@ function Chat({ socket, username, onLogout }) {
             <input
               type="file"
               ref={profilePicInputRef}
-              style={{ display: 'none' }}
+              style={{ display: "none" }}
               onChange={handleProfilePicChange}
               accept="image/*"
             />
@@ -507,14 +529,14 @@ function Chat({ socket, username, onLogout }) {
                 )}
                 {msg.isFile ? (
                   <FileContent>
-                    {msg.fileData.type.startsWith('image/') ? (
-                      <img 
-                        src={msg.fileData.data} 
+                    {msg.fileData.type.startsWith("image/") ? (
+                      <img
+                        src={msg.fileData.data}
                         alt={msg.fileData.name}
-                        style={{ maxWidth: '200px', maxHeight: '200px' }}
+                        style={{ maxWidth: "200px", maxHeight: "200px" }}
                       />
                     ) : (
-                      <a 
+                      <a
                         href={msg.fileData.data}
                         download={msg.fileData.name}
                         target="_blank"
@@ -531,9 +553,7 @@ function Chat({ socket, username, onLogout }) {
                   {new Date(msg.timestamp).toLocaleTimeString()}
                 </TimeStamp>
                 {msg.sender === username && (
-                  <DeleteButton
-                    onClick={() => handleDeleteMessage(msg._id)}
-                  >
+                  <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
                     <IoClose size={14} />
                   </DeleteButton>
                 )}
@@ -547,7 +567,7 @@ function Chat({ socket, username, onLogout }) {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={`Message ${selectedUser || 'everyone'}...`}
+              placeholder={`Message ${selectedUser || "everyone"}...`}
             />
             <AttachButton onClick={() => fileInputRef.current.click()}>
               <IoAttach />
@@ -556,7 +576,7 @@ function Chat({ socket, username, onLogout }) {
               type="file"
               ref={fileInputRef}
               onChange={handleFileUpload}
-              style={{ display: 'none' }}
+              style={{ display: "none" }}
             />
             <SendButton type="submit">
               <IoSend />
@@ -572,7 +592,7 @@ function Chat({ socket, username, onLogout }) {
             socket.emit("change-password", {
               username,
               oldPassword,
-              newPassword
+              newPassword,
             });
           }}
         />
@@ -631,7 +651,8 @@ const Sidebar = styled.div`
   @media (max-width: 768px) {
     position: absolute;
     height: 100%;
-    transform: ${({ isOpen }) => isOpen ? 'translateX(0)' : 'translateX(-100%)'};
+    transform: ${({ isOpen }) =>
+      isOpen ? "translateX(0)" : "translateX(-100%)"};
     z-index: 10;
   }
 `;
@@ -660,7 +681,7 @@ const DefaultProfilePic = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #111B21;
+  background: #111b21;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -671,12 +692,12 @@ const CameraOverlay = styled.div`
   position: absolute;
   bottom: -5px;
   right: -5px;
-  background: #111B21;
+  background: #111b21;
   color: #ffffff;
   border-radius: 50%;
   padding: 5px;
   cursor: pointer;
-  
+
   &:hover {
     opacity: 0.9;
   }
@@ -697,7 +718,7 @@ const ButtonGroup = styled.div`
 `;
 
 const Button = styled.button`
-  background: #111B21;
+  background: #111b21;
   color: #ffffff;
   border: none;
   padding: 0.5rem 1rem;
@@ -722,7 +743,8 @@ const UserItem = styled.div`
   border-radius: 8px;
   cursor: pointer;
   margin-bottom: 0.5rem;
-  background: ${({ isSelected }) => isSelected ? 'var(--hover-color)' : 'transparent'};
+  background: ${({ isSelected }) =>
+    isSelected ? "var(--hover-color)" : "transparent"};
 
   &:hover {
     background: var(--hover-color);
@@ -736,11 +758,10 @@ const MessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding-bottom: 100px; /* Increased padding to prevent overlap */
 
   @media (max-width: 768px) {
-    padding-bottom: 100px; /* Ensure consistent padding to prevent overlap */
-    height: calc(100vh - 120px);
+    padding-bottom: 60px;
+    height: calc(100vh - 130px);
   }
 `;
 
@@ -751,9 +772,9 @@ const MessageContent = styled.div`
 `;
 
 const SenderName = styled.div`
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #a0a0a0;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
 `;
 
 const MessageText = styled.div`
@@ -762,77 +783,76 @@ const MessageText = styled.div`
 `;
 
 const TimeStamp = styled.div`
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #a0a0a0;
   text-align: right;
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
 `;
 
 const MessageForm = styled.form`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 1.2rem;
+  padding: 1rem;
   background: var(--bg-secondary);
   position: sticky;
   bottom: 0;
   width: 100%;
-  z-index: 2; /* Ensure form stays above other content */
 
   @media (max-width: 768px) {
     position: fixed;
     bottom: 0;
     left: 0;
-    padding: 1rem;
+    padding: 0.8rem;
   }
 `;
 
 const MessageInput = styled.textarea`
   flex: 1;
-  padding: 0.9rem;
-  border: 1px solid #111B21;
+  padding: 0.8rem;
+  border: 1px solid #111b21;
   border-radius: 20px;
-  background: #111B21;
+  background: #111b21;
   color: #ffffff;
   outline: none;
   resize: none;
-  min-height: 50px;
-  max-height: 120px;
+  min-height: 40px;
+  max-height: 100px;
   overflow-y: auto;
   word-break: break-word;
-  
+
   &::-webkit-scrollbar {
     width: 4px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
-    background: #111B21;
+    background: #111b21;
     border-radius: 2px;
   }
-  
+
   &::placeholder {
     color: #a0a0a0;
   }
-  
+
   &:focus {
-    border-color: #202C33;
+    border-color: #202c33;
   }
 `;
 
 const SendButton = styled.button`
-  background: #111B21;
+  background: #111b21;
   color: #ffffff;
   border: none;
   border-radius: 50%;
-  width: 45px;
-  height: 45px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
 
   &:hover {
-    background: #202C33;
+    background: #202c33;
   }
 `;
 
@@ -840,22 +860,22 @@ const AttachButton = styled.button`
   background: transparent;
   color: #ffffff;
   border: none;
-  padding: 0.6rem;
+  padding: 0.5rem;
   cursor: pointer;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   display: flex;
   align-items: center;
   transition: color 0.2s;
 
   &:hover {
-    color: #202C33;
+    color: #202c33;
   }
 `;
 
 const DeletedMessage = styled.div`
   font-style: italic;
   color: #a0a0a0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 `;
 
 const MessagesArea = styled.div`
@@ -863,10 +883,10 @@ const MessagesArea = styled.div`
   display: flex;
   flex-direction: column;
   background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
-              url('https://w0.peakpx.com/wallpaper/901/891/HD-wallpaper-pattern-black-dark-grey-shape-thumbnail.jpg');
+    url("https://w0.peakpx.com/wallpaper/901/891/HD-wallpaper-pattern-black-dark-grey-shape-thumbnail.jpg");
   background-repeat: repeat;
   background-size: 200px;
-  padding: 1.2rem;
+  padding: 1rem;
   overflow-y: auto;
   position: relative;
 
@@ -885,16 +905,16 @@ const MessagesArea = styled.div`
 `;
 
 const PrivateChatIndicator = styled.div`
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #ffffff;
-  margin-left: 0.6rem;
+  margin-left: 0.5rem;
 `;
 
 const CloseButton = styled.button`
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 5px;
+  padding: 4px;
   color: #ffffff;
 `;
 
@@ -906,7 +926,7 @@ const HamburgerButton = styled.button`
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0.5rem;
-  
+
   @media (max-width: 768px) {
     display: flex;
     align-items: center;
@@ -918,7 +938,7 @@ const SectionToggle = styled.div`
   display: flex;
   margin-bottom: 1rem;
   border-bottom: 1px solid var(--border-color);
-  
+
   button {
     flex: 1;
     background: transparent;
@@ -926,7 +946,7 @@ const SectionToggle = styled.div`
     color: var(--text-secondary);
     padding: 0.8rem;
     cursor: pointer;
-    
+
     &.active {
       color: var(--accent-color);
       border-bottom: 2px solid var(--accent-color);
@@ -963,7 +983,7 @@ const UserProfile = styled.div`
   gap: 1rem;
   padding: 1rem;
   border-bottom: 1px solid var(--border-color);
-  
+
   span {
     color: var(--text-primary);
     font-weight: 500;
@@ -979,7 +999,7 @@ const MenuButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   &:hover {
     color: var(--text-primary);
   }
@@ -1006,14 +1026,15 @@ const UserAvatar = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${({ hasImage }) => hasImage ? 'none' : 'var(--accent-color)'};
+  background: ${({ hasImage }) => (hasImage ? "none" : "var(--accent-color)")};
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 1rem;
   overflow: hidden;
   position: relative;
-  background-image: ${({ profilePic }) => profilePic ? `url(${profilePic})` : 'none'};
+  background-image: ${({ profilePic }) =>
+    profilePic ? `url(${profilePic})` : "none"};
   background-size: cover;
   background-position: center;
 
@@ -1024,16 +1045,16 @@ const UserAvatar = styled.div`
   }
 
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: 2px;
     right: 2px;
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: ${({ isOnline }) => isOnline ? '#44b700' : '#666'};
+    background: ${({ isOnline }) => (isOnline ? "#44b700" : "#666")};
     border: 2px solid var(--bg-secondary);
-    display: ${({ hideStatus }) => hideStatus ? 'none' : 'block'};
+    display: ${({ hideStatus }) => (hideStatus ? "none" : "block")};
   }
 `;
 
