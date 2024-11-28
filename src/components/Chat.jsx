@@ -45,6 +45,7 @@ const MessageBubble = styled.div`
   .message-meta {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 4px;
     font-size: 0.7rem;
     color: var(--text-secondary);
@@ -62,9 +63,9 @@ const MessageBubble = styled.div`
   }
 `;
 
-const ReadReceipt = ({ isRead, readAt }) => {
+const ReadReceipt = ({ isRead }) => {
   return (
-    <div className="read-receipt" title={readAt ? `Read at ${new Date(readAt).toLocaleTimeString()}` : ''}>
+    <div className="read-receipt">
       {isRead ? (
         <IoCheckmarkDoneOutline color="#34B7F1" />
       ) : (
@@ -370,7 +371,7 @@ function Chat({ socket, username, onLogout }) {
         message: message.trim(),
         timestamp,
         isRead: false,
-        chatId: generateChatId(username, selectedUser)
+        chatId: createChatId(username, selectedUser)
       };
 
       socket.emit("send-private-message", messageData);
@@ -644,7 +645,7 @@ function Chat({ socket, username, onLogout }) {
                 <div className="message-meta">
                   <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
                   {msg.sender === username && (
-                    <ReadReceipt isRead={msg.isRead} readAt={msg.readAt} />
+                    <ReadReceipt isRead={msg.isRead} />
                   )}
                   {msg.sender === username && (
                     <UserStatus selectedUser={msg.sender} socket={socket} />
