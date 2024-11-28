@@ -736,11 +736,11 @@ const MessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding-bottom: 80px; /* Increased padding to prevent overlap */
+  padding-bottom: 100px; /* Increased padding to prevent overlap */
 
   @media (max-width: 768px) {
-    padding-bottom: 80px; /* Ensure consistent padding to prevent overlap */
-    height: calc(100vh - 130px);
+    padding-bottom: 100px; /* Ensure consistent padding to prevent overlap */
+    height: calc(100vh - 120px);
   }
 `;
 
@@ -751,9 +751,9 @@ const MessageContent = styled.div`
 `;
 
 const SenderName = styled.div`
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #a0a0a0;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.25rem;
 `;
 
 const MessageText = styled.div`
@@ -762,17 +762,17 @@ const MessageText = styled.div`
 `;
 
 const TimeStamp = styled.div`
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: #a0a0a0;
   text-align: right;
-  margin-top: 0.2rem;
+  margin-top: 0.25rem;
 `;
 
 const MessageForm = styled.form`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 1rem;
+  padding: 1.2rem;
   background: var(--bg-secondary);
   position: sticky;
   bottom: 0;
@@ -783,21 +783,21 @@ const MessageForm = styled.form`
     position: fixed;
     bottom: 0;
     left: 0;
-    padding: 0.8rem;
+    padding: 1rem;
   }
 `;
 
 const MessageInput = styled.textarea`
   flex: 1;
-  padding: 0.8rem;
+  padding: 0.9rem;
   border: 1px solid #111B21;
   border-radius: 20px;
   background: #111B21;
   color: #ffffff;
   outline: none;
   resize: none;
-  min-height: 40px;
-  max-height: 100px;
+  min-height: 50px;
+  max-height: 120px;
   overflow-y: auto;
   word-break: break-word;
   
@@ -824,8 +824,8 @@ const SendButton = styled.button`
   color: #ffffff;
   border: none;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 45px;
+  height: 45px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -840,9 +840,9 @@ const AttachButton = styled.button`
   background: transparent;
   color: #ffffff;
   border: none;
-  padding: 0.5rem;
+  padding: 0.6rem;
   cursor: pointer;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   display: flex;
   align-items: center;
   transition: color 0.2s;
@@ -855,7 +855,7 @@ const AttachButton = styled.button`
 const DeletedMessage = styled.div`
   font-style: italic;
   color: #a0a0a0;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 `;
 
 const MessagesArea = styled.div`
@@ -866,7 +866,7 @@ const MessagesArea = styled.div`
               url('https://w0.peakpx.com/wallpaper/901/891/HD-wallpaper-pattern-black-dark-grey-shape-thumbnail.jpg');
   background-repeat: repeat;
   background-size: 200px;
-  padding: 1rem;
+  padding: 1.2rem;
   overflow-y: auto;
   position: relative;
 
@@ -885,16 +885,16 @@ const MessagesArea = styled.div`
 `;
 
 const PrivateChatIndicator = styled.div`
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #ffffff;
-  margin-left: 0.5rem;
+  margin-left: 0.6rem;
 `;
 
 const CloseButton = styled.button`
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 4px;
+  padding: 5px;
   color: #ffffff;
 `;
 
