@@ -115,23 +115,18 @@ function Chat({ socket, username, onLogout }) {
     });
 
     socket.on("private-message", (message) => {
-      setMessages(prevMessages => {
-        // Check if this message belongs to the current chat
-        const chatId = createChatId(username, message.sender);
-        const reverseChatId = createChatId(message.sender, username);
-        
-        if (message.chatId === chatId || message.chatId === reverseChatId) {
-          return [...prevMessages, message];
-        }
-        
-        // Store message in chat history for other chats
+      const chatId = createChatId(username, message.sender);
+      const reverseChatId = createChatId(message.sender, username);
+      
+      if (message.chatId === chatId || message.chatId === reverseChatId) {
+        setMessages(prevMessages => [...prevMessages, message]);
+      } else {
+        // Store in chat history if not for current chat
         setChatHistory(prev => ({
           ...prev,
           [message.chatId]: [...(prev[message.chatId] || []), message]
         }));
-        
-        return prevMessages;
-      });
+      }
     });
 
     socket.on("message-history", (history) => {
@@ -251,26 +246,13 @@ function Chat({ socket, username, onLogout }) {
     if (selectedUser) {
       const chatId = createChatId(username, selectedUser);
       
-      // Load chat history if not already loaded
-      if (!chatHistory[chatId]) {
-        fetch(`${import.meta.env.VITE_API_URL}/api/messages/${chatId}`)
-          .then(res => res.json())
-          .then(messages => {
-            setChatHistory(prev => ({
-              ...prev,
-              [chatId]: messages
-            }));
-          })
-          .catch(console.error);
-      }
-
-      // Cleanup function
-      return () => {
-        if (chatHistory[chatId]) {
-          // Save current chat history to localStorage
-          localStorage.setItem(`chat_history_${chatId}`, JSON.stringify(chatHistory[chatId]));
-        }
-      };
+      // Fetch chat history when switching users
+      fetch(`${import.meta.env.VITE_API_URL}/api/messages/${chatId}`)
+        .then(res => res.json())
+        .then(history => {
+          setMessages(history);
+        })
+        .catch(err => console.error("Error fetching chat history:", err));
     }
   }, [selectedUser, username]);
 
