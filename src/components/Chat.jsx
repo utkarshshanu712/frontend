@@ -67,9 +67,9 @@ const ReadReceipt = ({ isRead }) => {
   return (
     <div className="read-receipt">
       {isRead ? (
-        <IoCheckmarkDoneOutline color="#34B7F1" />
+        <IoCheckmarkDoneOutline style={{ color: '#34B7F1' }} />
       ) : (
-        <IoCheckmarkOutline />
+        <IoCheckmarkOutline style={{ color: '#8696a0' }} />
       )}
     </div>
   );
@@ -363,25 +363,46 @@ function Chat({ socket, username, onLogout }) {
 
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (message.trim() || fileToSend) {
-      const timestamp = new Date().toISOString();
-      const messageData = {
-        sender: username,
-        receiver: selectedUser,
-        message: message.trim(),
-        timestamp,
-        isRead: false,
-        chatId: createChatId(username, selectedUser)
-      };
+    if (!message.trim()) return;
 
-      socket.emit("send-private-message", messageData);
-      
-      // Optimistically add message to state
-      setMessages(prev => [...prev, messageData]);
-      setMessage("");
-      setFileToSend(null);
-    }
+    const messageData = {
+      sender: username,
+      receiver: selectedUser,
+      message: message.trim(),
+      chatId: createChatId(username, selectedUser),
+      timestamp: new Date()
+    };
+
+    socket.emit("send-private-message", messageData);
+    setMessage("");
   };
+
+  useEffect(() => {
+    socket.on("message-sent", (data) => {
+      setMessages(prev => [...prev, data]);
+    });
+
+    socket.on("receive-private-message", (data) => {
+      setMessages(prev => [...prev, data]);
+      
+      // Mark as read if chat is open with sender
+      if (selectedUser === data.sender) {
+        socket.emit("mark-message-read", { messageId: data._id });
+      }
+    });
+
+    socket.on("message-read", ({ messageId }) => {
+      setMessages(prev => prev.map(msg => 
+        msg._id === messageId ? { ...msg, isRead: true } : msg
+      ));
+    });
+
+    return () => {
+      socket.off("message-sent");
+      socket.off("receive-private-message");
+      socket.off("message-read");
+    };
+  }, [socket, selectedUser, username]);
 
   const handleDeleteMessage = (messageId) => {
     socket.emit("delete-message", { messageId });
@@ -550,6 +571,21 @@ function Chat({ socket, username, onLogout }) {
     </UserList>
   );
 
+  const renderMessage = (msg) => (
+    <MessageBubble key={msg._id} isOwn={msg.sender === username}>
+      {msg.message}
+      <div className="message-meta">
+        <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
+        {msg.sender === username && <ReadReceipt isRead={msg.isRead} />}
+      </div>
+      {msg.sender === username && (
+        <DeleteButton onClick={() => handleDeleteMessage(msg._id)}>
+          <IoClose size={14} />
+        </DeleteButton>
+      )}
+    </MessageBubble>
+  );
+
   return (
     <ChatContainer>
       <Header>
@@ -612,54 +648,7 @@ function Chat({ socket, username, onLogout }) {
 
         <MessagesArea isSidebarOpen={isSidebarOpen}>
           <MessagesContainer>
-            {displayMessages.map((msg, index) => (
-              <MessageBubble
-                key={msg._id || index}
-                isOwn={msg.sender === username}
-              >
-                {msg.sender !== username && (
-                  <SenderName>{msg.sender}</SenderName>
-                )}
-                {msg.isFile ? (
-                  <FileContent>
-                    {msg.fileData.type.startsWith('image/') ? (
-                      <img 
-                        src={msg.fileData.data} 
-                        alt={msg.fileData.name}
-                        style={{ maxWidth: '200px', maxHeight: '200px' }}
-                      />
-                    ) : (
-                      <a 
-                        href={msg.fileData.data}
-                        download={msg.fileData.name}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Download: {msg.fileData.name}
-                      </a>
-                    )}
-                  </FileContent>
-                ) : (
-                  msg.message
-                )}
-                <div className="message-meta">
-                  <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
-                  {msg.sender === username && (
-                    <ReadReceipt isRead={msg.isRead} />
-                  )}
-                  {msg.sender === username && (
-                    <UserStatus selectedUser={msg.sender} socket={socket} />
-                  )}
-                </div>
-                {msg.sender === username && (
-                  <DeleteButton
-                    onClick={() => handleDeleteMessage(msg._id)}
-                  >
-                    <IoClose size={14} />
-                  </DeleteButton>
-                )}
-              </MessageBubble>
-            ))}
+            {displayMessages.map(renderMessage)}
             <div ref={messagesEndRef} />
           </MessagesContainer>
 
