@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
-import { IoSend, IoAttach, IoCamera, IoClose, IoMenu, IoPeople } from "react-icons/io5";
+import { IoSend, IoAttach, IoCamera, IoClose, IoMenu, IoPeople, IoCheckmarkOutline, IoCheckmarkDoneOutline, IoArrowBack } from "react-icons/io5";
 import PasswordChangeModal from "./PasswordChangeModal";
 import logoImage from '../assets/orig_600x600-removebg-preview.png';
 
@@ -42,11 +42,36 @@ const MessageBubble = styled.div`
   background: ${props => props.isOwn ? 'var(--message-out)' : 'var(--message-in)'};
   align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
 
+  .message-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  .read-receipt {
+    display: flex;
+    align-items: center;
+  }
+
   &:hover ${DeleteButton} {
     opacity: 1;
     visibility: visible;
   }
 `;
+
+const ReadReceipt = ({ isRead, readAt }) => {
+  if (!isRead) {
+    return <IoCheckmarkOutline />;
+  }
+  return (
+    <div className="read-receipt" title={readAt ? `Read at ${new Date(readAt).toLocaleTimeString()}` : ''}>
+      <IoCheckmarkDoneOutline color="#34B7F1" />
+    </div>
+  );
+};
 
 function Chat({ socket, username, onLogout }) {
   const [users, setUsers] = useState([]);
@@ -435,6 +460,65 @@ function Chat({ socket, username, onLogout }) {
     </UserList>
   );
 
+  const UserStatus = ({ selectedUser, socket }) => {
+    const [lastActive, setLastActive] = useState(null);
+    const [isOnline, setIsOnline] = useState(false);
+
+    useEffect(() => {
+      if (!selectedUser) return;
+
+      // Get initial status
+      fetch(`${import.meta.env.VITE_API_URL}/user/${selectedUser}/status`)
+        .then(res => res.json())
+        .then(data => {
+          setIsOnline(data.isOnline);
+          setLastActive(data.lastActive);
+        });
+
+      // Listen for status updates
+      socket.on('user-status-update', ({ username, status }) => {
+        if (username === selectedUser) {
+          setIsOnline(status.isOnline);
+          setLastActive(status.lastActive);
+        }
+      });
+
+      return () => {
+        socket.off('user-status-update');
+      };
+    }, [selectedUser, socket]);
+
+    if (!selectedUser) return null;
+
+    const formatLastActive = (timestamp) => {
+      if (!timestamp) return '';
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diff = now - date;
+      
+      // Less than a minute
+      if (diff < 60000) return 'just now';
+      // Less than an hour
+      if (diff < 3600000) return `${Math.floor(diff / 60000)} min ago`;
+      // Less than a day
+      if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`;
+      // More than a day
+      return date.toLocaleDateString();
+    };
+
+    return (
+      <StatusContainer>
+        {isOnline ? (
+          <OnlineStatus>online</OnlineStatus>
+        ) : (
+          <LastActiveStatus>
+            last seen {formatLastActive(lastActive)}
+          </LastActiveStatus>
+        )}
+      </StatusContainer>
+    );
+  };
+
   return (
     <ChatContainer>
       <Header>
@@ -527,9 +611,12 @@ function Chat({ socket, username, onLogout }) {
                 ) : (
                   msg.message
                 )}
-                <TimeStamp>
-                  {new Date(msg.timestamp).toLocaleTimeString()}
-                </TimeStamp>
+                <div className="message-meta">
+                  <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                  {msg.sender === username && (
+                    <ReadReceipt isRead={msg.isRead} readAt={msg.readAt} />
+                  )}
+                </div>
                 {msg.sender === username && (
                   <DeleteButton
                     onClick={() => handleDeleteMessage(msg._id)}
@@ -1037,6 +1124,20 @@ const UserAvatar = styled.div`
 
 const FileContent = styled.div`
   margin-bottom: 0.5rem;
+`;
+
+const StatusContainer = styled.div`
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+`;
+
+const OnlineStatus = styled.span`
+  color: var(--accent-color);
+`;
+
+const LastActiveStatus = styled.span`
+  color: var(--text-secondary);
 `;
 
 export default Chat;
