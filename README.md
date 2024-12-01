@@ -13,8 +13,15 @@ Friend-Chat is a real-time chat application built with React and Vite. It utiliz
 - Complete deletion of meseege From everywhere
 - Send files upto to 50 Mb// You can increse size But first cheack your database size I am using free Verision of Mongo Db atlas
 - Responsive design
+  
+![Screenshot 2024-12-01 130109](https://github.com/user-attachments/assets/6dc5b27d-ad63-4669-8420-ee14d09165b6)
+![Screenshot 2024-12-01 130017](https://github.com/user-attachments/assets/e2cb33b2-a2b1-480c-ad80-2f9956ba851d)![Screenshot 2024-12-01 130031](https://github.com/user-attachments/assets/4774f0ec-5cd0-4e32-b859-9969b92bcc89)![Screenshot 2024-11-26 231416](https://github.com/user-attachments/assets/2faa452d-24db-4d8b-83ce-f863e84dfa34)
+![Screenshot 2024-12-01 130058](https://github.com/user-attachments/assets/34445867-388b-4e37-9521-9f7dd43ad1f5)
 
-## Technologies Used
+
+
+## Technologies Used![Screenshot 2024-12-01 130058](https://github.com/user-attachments/assets/4e86efad-72e9-4992-8248-57f4ef243e5b)
+
 
 - **Frontend**: React, Vite, Socket.IO, Styled Components
 - **Backend**: Express, Socket.IO, MongoDB, Mongoose
